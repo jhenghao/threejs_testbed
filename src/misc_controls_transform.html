@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - transform controls</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				margin: 0px;
+				background-color: #000000;
+				color: #fff;
+				font-family:Monospace;
+				text-align: center;
+				font-size: 15px;
+				line-height: 30px;
+				overflow: hidden;
+			}
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 15px;
+				z-index:100;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="info">
+		"W" translate | "E" rotate | "R" scale | "+" increase size | "-" decrease size<br />
+		Press "Q" to toggle world/local space, keep "Ctrl" down to snap to grid
+		</div>
+
+		<script src="../build/three.js"></script>
+		<script src="js/controls/TransformControls.js"></script>
+
+		<script id="vertShader" type="shader">
+			varying vec2 vUv;
+			varying vec3 vecPos;
+			varying vec3 vecNormal;
+  
+			void main() {
+  				vUv = uv;
+  				// Since the light is in camera coordinates,
+  				// I'll need the vertex position in camera coords too
+  				vecPos = (modelViewMatrix * vec4(position, 1.0)).xyz;
+  				// That's NOT exacly how you should transform your
+  				// normals but this will work fine, since my model
+  				// matrix is pretty basic
+  				vecNormal = (modelViewMatrix * vec4(normal, 0.0)).xyz;
+  				gl_Position = projectionMatrix * vec4(vecPos, 1.0);
+			}
+		</script>
+
+		<script id="fragShader" type="shader">
+			precision highp float;
+  
+			varying vec2 vUv;
+			varying vec3 vecPos;
+			varying vec3 vecNormal;
+  
+			uniform float lightIntensity;
+			uniform sampler2D textureSampler;
+ 
+			struct PointLight {
+				vec3 color;
+				vec3 position; // light position, in camera coordinates
+				float distance; // used for attenuation purposes. Since
+                	// we're writing our own shader, it can
+					// really be anything we want (as long as
+					// we assign it to our light in its
+					// "distance" field
+			};
+ 
+			//uniform PointLight pointLights[NUM_POINT_LIGHTS];
+			uniform PointLight pointLights[3];
+  
+			void main(void) {
+				// Pretty basic lambertian lighting...
+				vec4 addedLights = vec4(0.0, 0.0, 0.0, 1.0);
+				
+				//for(int l = 0; l < NUM_POINT_LIGHTS; l++) {
+				//for(int l = 0; l < 3; l++) {
+				//	vec3 lightDirection = normalize(vecPos - pointLights[l].position);
+      			//	addedLights.rgb += clamp(dot(-lightDirection, vecNormal), 0.0, 1.0)
+				//	* pointLights[l].color * lightIntensity;
+				//}
+				
+				gl_FragColor = texture2D(textureSampler, vUv) * addedLights;
+			}
+		</script>
+
+		<script>
+
+			var camera, scene, renderer, control;
+			var objects = [];
+
+			// Character 3d object
+			var character = null;
+
+			init();
+			render();
+
+			function init() {
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.sortObjects = false;
+				document.body.appendChild( renderer.domElement );
+
+				//
+
+				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 3000 );
+				camera.position.set( 1000, 500, 1000 );
+				camera.lookAt( new THREE.Vector3( 0, 200, 0 ) );
+
+				scene = new THREE.Scene();
+				scene.add( new THREE.GridHelper( 500, 10 ) );
+
+				var light = new THREE.DirectionalLight( 0xffffff, 2 );
+				light.position.set( 1, 1, 1 );
+				scene.add( light );
+
+				control = new THREE.TransformControls( camera, renderer.domElement );
+				control.addEventListener( 'change', render );
+				scene.add( control );
+
+				loadObjects();
+
+				document.addEventListener( 'mousedown', onDocumentMouseDown, false );
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				window.addEventListener( 'keydown', function ( event ) {
+
+					switch ( event.keyCode ) {
+
+						case 81: // Q
+							control.setSpace( control.space === "local" ? "world" : "local" );
+							break;
+
+						case 17: // Ctrl
+							control.setTranslationSnap( 100 );
+							control.setRotationSnap( THREE.Math.degToRad( 15 ) );
+							break;
+
+						case 87: // W
+							control.setMode( "translate" );
+							break;
+
+						case 69: // E
+							control.setMode( "rotate" );
+							break;
+
+						case 82: // R
+							control.setMode( "scale" );
+							break;
+
+						case 187:
+						case 107: // +, =, num+
+							control.setSize( control.size + 0.1 );
+							break;
+
+						case 189:
+						case 109: // -, _, num-
+							control.setSize( Math.max( control.size - 0.1, 0.1 ) );
+							break;
+
+					}
+
+				});
+
+				window.addEventListener( 'keyup', function ( event ) {
+
+					switch ( event.keyCode ) {
+
+						case 17: // Ctrl
+							control.setTranslationSnap( null );
+							control.setRotationSnap( null );
+							break;
+
+					}
+
+				});
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+				render();
+
+			}
+
+			function buildCharacter () 
+			{
+				
+					//var g = new THREE.PlaneGeometry(1.0, 1.0);
+					var g = new THREE.BoxGeometry( 200, 50, 50 )
+					var textureLoader = new THREE.TextureLoader();
+					var creatureImage = textureLoader.load('../textures/mrevil.png');
+					creatureImage.magFilter = THREE.NearestFilter;
+ 
+					var mat = new THREE.ShaderMaterial({
+    					uniforms: THREE.UniformsUtils.merge([
+            			THREE.UniformsLib['lights'],
+            			{
+                			lightIntensity: {type: 'f', value: 1.0},
+                			textureSampler: {type: 't', value: null}
+            			}
+        				]),
+        				vertexShader: document.getElementById('vertShader').text,
+        				fragmentShader: document.getElementById('fragShader').text,
+        				transparent: true,
+        				lights: true
+    				});
+
+    				// THREE.UniformsUtils.merge() call THREE.clone() on
+    				// each uniform. We don't want our texture to be
+    				// duplicated, so I assign it to the uniform value
+    				// right here.
+    				mat.uniforms.textureSampler.value = creatureImage;
+ 
+    				var obj = new THREE.Mesh(g, mat);
+ 
+    				return obj;
+			}
+
+			function loadObjects()
+			{
+				var texture = new THREE.TextureLoader().load( '../textures/crate.gif', render );
+				texture.mapping = THREE.UVMapping;
+				texture.anisotropy = renderer.getMaxAnisotropy();
+
+				var geometry = new THREE.BoxGeometry( 200, 200, 200 );
+				var material = new THREE.MeshLambertMaterial( { map: texture } );
+
+				var mesh = new THREE.Mesh( geometry, material );
+				scene.add( mesh );
+				objects.push(mesh);
+
+				// projector object
+				var projectorGeometry = new THREE.BoxGeometry( 200, 50, 50 );
+				var projectorMaterial = new THREE.MeshLambertMaterial();
+
+				var projectorMesh = new THREE.Mesh(projectorGeometry, projectorMaterial);
+				projectorMesh.position.set(2, 2, 2);
+				scene.add(projectorMesh);
+				objects.push(projectorMesh);
+
+				// Create character
+  				character = buildCharacter();
+				character.position.set(1,1,1);
+  				scene.add(character);
+				objects.push(character);
+			}
+
+			function onDocumentMouseDown( event ) 
+			{
+				event.preventDefault();
+
+				var mouse = new THREE.Vector2();
+				mouse.x = (event.clientX / renderer.domElement.clientWidth) * 2 - 1;
+				mouse.y = - (event.clientY / renderer.domElement.clientHeight) * 2 + 1;
+
+				var raycaster = new THREE.Raycaster();
+				raycaster.setFromCamera( mouse, camera );
+
+				var intersects = raycaster.intersectObjects( objects );
+
+				if (intersects.length > 0)
+				{
+					control.attach(intersects[0].object);
+					control.update();
+					render();
+				}
+			}
+
+			function render() {
+
+				control.update();
+
+				renderer.render( scene, camera );
+
+			}
+
+		</script>
+
+	</body>
+</html>
