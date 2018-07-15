@@ -80,6 +80,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 	this.position0 = this.object.position.clone();
 	this.zoom0 = this.object.zoom;
 
+	// object movement
+	this.movementSpeed = 400.0;
+	this.moveState = { up: 0, down: 0, left: 0, right: 0, forward: 0, back: 0, pitchUp: 0, pitchDown: 0, yawLeft: 0, yawRight: 0, rollLeft: 0, rollRight: 0 };
+	this.moveVector = new THREE.Vector3( 0, 0, 0 );
+
 	//
 	// public methods
 	//
@@ -119,9 +124,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 		// so camera.up is the orbit axis
 		var quat = new THREE.Quaternion().setFromUnitVectors( object.up, new THREE.Vector3( 0, 1, 0 ) );
 		var quatInverse = quat.clone().inverse();
-
-		var lastPosition = new THREE.Vector3();
-		var lastQuaternion = new THREE.Quaternion();
 
 		return function update() {
 
@@ -184,29 +186,28 @@ THREE.OrbitControls = function ( object, domElement ) {
 			scale = 1;
 			panOffset.set( 0, 0, 0 );
 
-			// update condition is:
-			// min(camera displacement, camera rotation in radians)^2 > EPS
-			// using small-angle approximation cos(x/2) = 1 - x^2 / 8
-
-			if ( zoomChanged ||
-				lastPosition.distanceToSquared( scope.object.position ) > EPS ||
-				8 * ( 1 - lastQuaternion.dot( scope.object.quaternion ) ) > EPS ) {
-
-				scope.dispatchEvent( changeEvent );
-
-				lastPosition.copy( scope.object.position );
-				lastQuaternion.copy( scope.object.quaternion );
-				zoomChanged = false;
-
-				return true;
-
-			}
-
 			return false;
 
 		};
 
 	}();
+
+	this.updateWithDelta = function( delta ) {
+		
+		if (scope.moveVector.x == 0 &&
+			scope.moveVector.y == 0 &&
+			scope.moveVector.z == 0)
+		{
+			return;
+		}
+
+		let moveMult = delta * scope.movementSpeed;
+
+		panLeft(scope.moveVector.x * moveMult, scope.object.matrix);
+		panUp(scope.moveVector.z * moveMult, scope.object.matrix);
+
+		scope.update();
+	};
 
 	this.dispose = function () {
 
@@ -222,6 +223,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 		document.removeEventListener( 'mouseup', onMouseUp, false );
 
 		window.removeEventListener( 'keydown', onKeyDown, false );
+		window.removeEventListener( 'keyup', onKeyUp, false );
 
 		//scope.dispatchEvent( { type: 'dispose' } ); // should this be added here?
 
@@ -400,6 +402,14 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}
 
+	function updateMovementVector () {
+
+		scope.moveVector.x = ( scope.moveState.left    - scope.moveState.right );
+		scope.moveVector.y = ( scope.moveState.down    - scope.moveState.up );
+		scope.moveVector.z = ( scope.moveState.forward - scope.moveState.back );
+
+	};
+
 	//
 	// event callbacks - update the object state
 	//
@@ -520,27 +530,49 @@ THREE.OrbitControls = function ( object, domElement ) {
 		switch ( event.keyCode ) {
 
 			case scope.keys.UP:
-				pan( 0, scope.keyPanSpeed );
-				scope.update();
+				scope.moveState.forward = 1;
 				break;
 
 			case scope.keys.BOTTOM:
-				pan( 0, - scope.keyPanSpeed );
-				scope.update();
+				scope.moveState.back = 1;
 				break;
 
 			case scope.keys.LEFT:
-				pan( scope.keyPanSpeed, 0 );
-				scope.update();
+				scope.moveState.left = 1;
 				break;
 
 			case scope.keys.RIGHT:
-				pan( - scope.keyPanSpeed, 0 );
-				scope.update();
+				scope.moveState.right = 1;
 				break;
-
 		}
 
+		updateMovementVector();
+	}
+
+	function handleKeyUp( event ) {
+
+		console.log( 'handleKeyUp' );
+
+		switch ( event.keyCode ) {
+
+			case scope.keys.UP:
+				scope.moveState.forward = 0;
+				break;
+
+			case scope.keys.BOTTOM:
+				scope.moveState.back = 0;
+				break;
+
+			case scope.keys.LEFT:
+				scope.moveState.left = 0;
+				break;
+
+			case scope.keys.RIGHT:
+				scope.moveState.right = 0;
+				break;
+		}
+
+		updateMovementVector();
 	}
 
 	function handleTouchStartRotate( event ) {
@@ -756,6 +788,14 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}
 
+	function onKeyUp( event ) {
+
+		if ( scope.enabled === false || scope.enableKeys === false || scope.enablePan === false ) return;
+
+		handleKeyUp( event );
+
+	}
+
 	function onTouchStart( event ) {
 
 		if ( scope.enabled === false ) return;
@@ -880,6 +920,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 	scope.domElement.addEventListener( 'touchmove', onTouchMove, false );
 
 	window.addEventListener( 'keydown', onKeyDown, false );
+	window.addEventListener( 'keyup', onKeyUp, false );
 
 	// force an update at start
 

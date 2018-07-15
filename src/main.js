@@ -1,6 +1,9 @@
 "use strict";
 
-let camera, scene, renderer, control;
+let camera, scene, renderer;
+let transformControl;
+let orbitControl;
+let clock = new THREE.Clock();
 let objects = [];
 const textureDir = "../textures/";
 
@@ -52,9 +55,12 @@ function init() {
 
     createPointLight();
 
-    control = new THREE.TransformControls( camera, renderer.domElement );
-    control.addEventListener( 'change', render );
-    scene.add( control );
+    orbitControl = new THREE.OrbitControls( camera, renderer.domElement );
+    orbitControl.enableZoom = true;
+    orbitControl.enablePan = true;
+
+    transformControl = new THREE.TransformControls( camera, renderer.domElement );
+    scene.add( transformControl );
 
     loadObjects();
 
@@ -67,34 +73,34 @@ function init() {
         switch ( event.keyCode ) {
 
             case 81: // Q
-                control.setSpace( control.space === "local" ? "world" : "local" );
+                transformControl.setSpace( transformControl.space === "local" ? "world" : "local" );
                 break;
 
             case 17: // Ctrl
-                control.setTranslationSnap( 100 );
-                control.setRotationSnap( THREE.Math.degToRad( 15 ) );
+                transformControl.setTranslationSnap( 100 );
+                transformControl.setRotationSnap( THREE.Math.degToRad( 15 ) );
                 break;
 
             case 87: // W
-                control.setMode( "translate" );
+                transformControl.setMode( "translate" );
                 break;
 
             case 69: // E
-                control.setMode( "rotate" );
+                transformControl.setMode( "rotate" );
                 break;
 
             case 82: // R
-                control.setMode( "scale" );
+                transformControl.setMode( "scale" );
                 break;
 
             case 187:
             case 107: // +, =, num+
-                control.setSize( control.size + 0.1 );
+                transformControl.setSize( transformControl.size + 0.1 );
                 break;
 
             case 189:
             case 109: // -, _, num-
-                control.setSize( Math.max( control.size - 0.1, 0.1 ) );
+                transformControl.setSize( Math.max( transformControl.size - 0.1, 0.1 ) );
                 break;
 
         }
@@ -106,8 +112,8 @@ function init() {
         switch ( event.keyCode ) {
 
             case 17: // Ctrl
-                control.setTranslationSnap( null );
-                control.setRotationSnap( null );
+                transformControl.setTranslationSnap( null );
+                transformControl.setRotationSnap( null );
                 break;
 
         }
@@ -214,15 +220,17 @@ function onDocumentMouseDown( event )
 
     if (intersects.length > 0)
     {
-        control.attach(intersects[0].object);
-        control.update();
+        transformControl.attach(intersects[0].object);
+        transformControl.update();
         render();
     }
 }
 
 function render() {
 
-    control.update();
+    let delta = clock.getDelta();
+
+    orbitControl.updateWithDelta(delta);
 
     renderer.render( scene, camera );
 
