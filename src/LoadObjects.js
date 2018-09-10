@@ -2,20 +2,10 @@
 
 const textureDir = "../textures/";
 
-// Character 3d object
-let character = null;
-
-let pointLight;
-
-function buildCharacter () 
+function loadModel (geometry, texture, vertShaderPath, fragShaderPath) 
 {
     let callback = function(vertText, fragText)
     {
-        let g = new THREE.BoxGeometry( 200, 200, 200 )
-            let textureLoader = new THREE.TextureLoader();
-        let creatureImage = textureLoader.load('../textures/mrevil.png');
-        creatureImage.magFilter = THREE.NearestFilter;
-
         let mat = new THREE.ShaderMaterial({
             uniforms: THREE.UniformsUtils.merge([
                           THREE.UniformsLib['lights'],
@@ -35,42 +25,37 @@ function buildCharacter ()
         // each uniform. We don't want our texture to be
         // duplicated, so I assign it to the uniform value
         // right here.
-        mat.uniforms.textureSampler.value = creatureImage;
+        mat.uniforms.textureSampler.value = texture;
 
-        character = new THREE.Mesh(g, mat);
-        character.position.set(1,1,1);
+        let model = new THREE.Mesh(geometry, mat);
+        model.position.set(0,0,0);
 
-        scene.add(character);
-        objects.push(character);
+        scene.add(model);
+        objects.push(model);
     };
 
-    //loadShaders('shaders/test.vert', 'shaders/test.frag', callback);
-    loadShaders('shaders/vertex_lighting_point.vert', 'shaders/vertex_lighting_point.frag', callback);
+    loadShaders(vertShaderPath, fragShaderPath, callback);
 }
 
-function loadObjects()
+function loadScene()
 {
-    var texture = new THREE.TextureLoader().load( '../textures/crate.gif', render );
-    texture.mapping = THREE.UVMapping;
-    texture.anisotropy = renderer.getMaxAnisotropy();
+    let texturePath = '../textures/crate.gif';
+    let textureLoader = new THREE.TextureLoader();
+    let texture = null;
+    if (texturePath != null)
+    {
+        texture = textureLoader.load(texturePath);
+        texture.magFilter = THREE.NearestFilter;
+    }
 
-    var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-    var material = new THREE.MeshLambertMaterial( { map: texture } );
+    let geometry = new THREE.BoxGeometry( 5, 5, 5 );
 
-    var mesh = new THREE.Mesh( geometry, material );
-
-    //addObject(mesh);
-    scene.add( mesh );
-    objects.push(mesh);
-
-    // Create character
-    buildCharacter();
-
-
-
-    var light = new THREE.DirectionalLight( 0xffffff, 2 );
-    light.position.set( 1, 1, 1 );
-    scene.add( light );
+    loadModel(
+        geometry,
+        texture,
+        'shaders/vertex_lighting_point.vert',
+        'shaders/vertex_lighting_point.frag'
+    );
 
     createPointLight();
 
@@ -82,9 +67,9 @@ function createPointLight () {
     let spriteMap = new THREE.TextureLoader().load( textureDir + "light.png" );
     let spriteMaterial = new THREE.SpriteMaterial( { map: spriteMap, color: 0xffffff } );
     let sprite = new THREE.Sprite( spriteMaterial );
-    sprite.scale.set(100, 100, 1);
+    sprite.scale.set(1, 1, 1);
 
-    pointLight = new THREE.PointLight(0xffffff, 1.0);
+    let pointLight = new THREE.PointLight(0xffffff, 5.0);
     sprite.add(pointLight);
 
     scene.add(sprite);
@@ -92,15 +77,6 @@ function createPointLight () {
 }
 
 function update (delta) {
-    // Update light profile
-    if (character !== null)
-    {
-        var timestampNow = new Date().getTime()/1000.0;
-        var lightIntensity = 0.75 + 0.25 * Math.cos(timestampNow * Math.PI);
-
-        character.material.uniforms.lightIntensity.value = lightIntensity;
-        pointLight.color.setHSL(lightIntensity, 1.0, 0.5);
-    }
 }
 
-loadObjects();
+loadScene();

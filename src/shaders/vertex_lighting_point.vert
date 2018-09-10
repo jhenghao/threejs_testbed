@@ -1,4 +1,4 @@
-varying vec2 vUv;
+varying vec2 vecUv;
 varying vec3 vecPos;
 varying vec3 vecNormal;
 varying vec4 vecColor;
@@ -15,34 +15,34 @@ struct PointLight {
 
 uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
-void main() {
-    vUv = uv;
+void main()
+{
+    vec3 normalEyeSpace = (modelViewMatrix * vec4(normal, 0.0)).xyz;
+    vec3 positionEyeSpace = (modelViewMatrix * vec4(position, 1.0)).xyz;
+    vec3 diffuse = vec3(0.0, 0.0, 0.0);
 
-    vecPos = (modelViewMatrix * vec4(position, 1.0)).xyz;
+    for (int l = 0; l < NUM_POINT_LIGHTS; l++)
+    {
+        vec3 vDiff = pointLights[l].position - positionEyeSpace;
+        float distance = length(vDiff);
+        vec3 vDir = vDiff / distance;
 
-    vec3 vWorldNormal = (modelMatrix * vec4(normal, 0.0)).xyz;
-    vec3 vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-    vec4 vDiffuse = vec4(0.0, 0.0, 0.0, 1.0);
+        float lightAttenuation = dot(
+            vec3(1.0, distance, distance * distance), vec3(1.0, 0.2, 0));
 
-    for (int l = 0; l < NUM_POINT_LIGHTS; l++) {
-
-        vec3 vDiff = pointLights[l].position - vWorldPosition;
-
-        float fDistance = length(vDiff);
-
-        vec3 vDir = vDiff / fDistance;
-
-        vDiffuse = vec4(pointLights[l].color * clamp(dot(vDir, vWorldNormal), 0.0 ,1.0), 1.0);
-
+        diffuse += pointLights[l].color * 
+            clamp(dot(vDir, normalEyeSpace), 0.0 ,1.0) / lightAttenuation;
     }
 
+    vecColor = vec4(clamp(diffuse, 0.0, 1.0), 1.0);
 
-    vecColor = vDiffuse;
+    vecUv = uv;
+    vecPos = (modelViewMatrix * vec4(position, 1.0)).xyz;
 
     // That's NOT exacly how you should transform your
     // normals but this will work fine, since my model
     // matrix is pretty basic
     vecNormal = (modelViewMatrix * vec4(normal, 0.0)).xyz;
-    gl_Position = projectionMatrix * vec4(vecPos, 1.0);
 
+    gl_Position = projectionMatrix * vec4(vecPos, 1.0);
 }

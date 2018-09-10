@@ -1,6 +1,6 @@
 precision highp float;
 
-varying vec2 vUv;
+varying vec2 vecUv;
 varying vec3 vecPos;
 varying vec3 vecNormal;
 varying vec4 vecColor;
@@ -20,8 +20,8 @@ struct PointLight {
 
 uniform PointLight pointLights[NUM_POINT_LIGHTS];
 
-void main(void) {
-
-    gl_FragColor = texture2D(textureSampler, vUv) * vecColor;
+void main(void)
+{
+    gl_FragColor = texture2D(textureSampler, vecUv) * vecColor;
 }
 
