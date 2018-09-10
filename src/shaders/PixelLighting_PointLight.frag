@@ -1,6 +1,6 @@
 precision highp float;
 
-varying vec2 vUv;
+varying vec2 vecUv;
 varying vec3 vecPos;
 varying vec3 vecNormal;
 
@@ -23,12 +23,13 @@ void main(void) {
     // Pretty basic lambertian lighting...
     vec4 addedLights = vec4(0.0, 0.0, 0.0, 1.0);
 
-    for(int l = 0; l < NUM_POINT_LIGHTS; l++) {
+    for (int l = 0; l < NUM_POINT_LIGHTS; l++)
+    {
         vec3 lightDirection = normalize(vecPos - pointLights[l].position);
         addedLights.rgb += clamp(dot(-lightDirection, vecNormal), 0.0, 1.0)
             * pointLights[l].color * lightIntensity;
     }
 
-    gl_FragColor = texture2D(textureSampler, vUv) * addedLights;
+    gl_FragColor = texture2D(textureSampler, vecUv) * addedLights;
 }
 

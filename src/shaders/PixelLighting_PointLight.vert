@@ -1,9 +1,9 @@
-varying vec2 vUv;
+varying vec2 vecUv;
 varying vec3 vecPos;
 varying vec3 vecNormal;
 
 void main() {
-    vUv = uv;
+    vecUv = uv;
     // Since the light is in camera coordinates,
     // I'll need the vertex position in camera coords too
     vecPos = (modelViewMatrix * vec4(position, 1.0)).xyz;

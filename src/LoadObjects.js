@@ -53,8 +53,11 @@ function loadScene()
     loadModel(
         geometry,
         texture,
-        'shaders/vertex_lighting_point.vert',
-        'shaders/vertex_lighting_point.frag'
+        //'shaders/VertexLighting_PointLight.vert',
+        //'shaders/VertexLighting_PointLight.frag'
+
+        'shaders/PixelLighting_PointLight.vert',
+        'shaders/PixelLighting_PointLight.frag'
     );
 
     createPointLight();
@@ -71,6 +74,7 @@ function createPointLight () {
 
     let pointLight = new THREE.PointLight(0xffffff, 5.0);
     sprite.add(pointLight);
+    sprite.position.y = 10;
 
     scene.add(sprite);
     objects.push(sprite);

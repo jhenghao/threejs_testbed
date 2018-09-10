@@ -3,6 +3,8 @@ varying vec3 vecPos;
 varying vec3 vecNormal;
 varying vec4 vecColor;
 
+uniform float lightIntensity;
+
 struct PointLight {
     vec3 color;
     vec3 position; // light position, in camera coordinates
@@ -30,8 +32,8 @@ void main()
         float lightAttenuation = dot(
             vec3(1.0, distance, distance * distance), vec3(1.0, 0.2, 0));
 
-        diffuse += pointLights[l].color * 
-            clamp(dot(vDir, normalEyeSpace), 0.0 ,1.0) / lightAttenuation;
+        diffuse += clamp(dot(vDir, normalEyeSpace), 0.0 ,1.0) *
+            pointLights[l].color * lightIntensity / lightAttenuation;
     }
 
     vecColor = vec4(clamp(diffuse, 0.0, 1.0), 1.0);

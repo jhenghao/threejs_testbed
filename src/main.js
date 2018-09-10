@@ -23,8 +23,8 @@ function init() {
     //
 
     camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 3000 );
-    camera.position.set( 400, 400, 300 );
-    camera.lookAt( new THREE.Vector3( 0, 200, 0 ) );
+    camera.position.set( 30, 30, 30 );
+    camera.lookAt( new THREE.Vector3( 0, 0, 0 ) );
 
     scene = new THREE.Scene();
     scene.add( new THREE.GridHelper( 500, 10 ) );
