@@ -38,6 +38,8 @@ function loadScene()
     loader.load(
         // resource URL
         '../models/gltf/lamborghini_asterion_lpi910-4_concept_2014/scene.gltf',
+        //'../models/gltf/brick_textures/scene.gltf',
+        //'../models/gltf/pokemon_jigglypuff/scene.gltf',
         // called when the resource is loaded
         function ( gltf ) {
 
@@ -58,8 +60,10 @@ function loadScene()
                 scene.add( gltf.scene );
             }
 
-            let vertShaderPath = 'shaders/meshphysical.vert';
-            let fragShaderPath = 'shaders/meshphysical.frag';
+            //let vertShaderPath = 'shaders/meshphysical.vert';
+            //let fragShaderPath = 'shaders/meshphysical.frag';
+            let vertShaderPath = 'shaders/meshlambert.vert';
+            let fragShaderPath = 'shaders/meshlambert.frag';
             loadShaders(vertShaderPath, fragShaderPath, callback);
         },
         // called while loading is progressing
