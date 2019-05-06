@@ -1,6 +1,5 @@
 "use strict";
 
-
 function createPointLight ()
 {
     let spriteMap = new THREE.TextureLoader().load( textureDir + "light.png" );
@@ -81,6 +80,14 @@ function loadScene()
     // adjust camera
     camera.position.set( 0.0, 200.0, 500.0 );
     camera.lookAt(new THREE.Vector3(0.0, 0.0, 0.0));
+
+    // add post processing
+    var bloomPass = new THREE.BloomPass();
+    composer.addPass(bloomPass);
+
+    var effectCopy = new THREE.ShaderPass(THREE.CopyShader);
+    effectCopy.renderToScreen = true;
+    composer.addPass(effectCopy);
 }
 
 $( document ).ready(function()

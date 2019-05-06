@@ -2,7 +2,7 @@
 
 const textureDir = "../textures/";
 var container, stats, controls;
-var camera, scene, renderer;
+var camera, scene, renderer, composer;
 
 
 function loadShaders (vertShaderPath, fragShaderPath, callback)
@@ -40,6 +40,12 @@ function init()
     renderer.gammaOutput = true;
     container.appendChild( renderer.domElement );
 
+    let renderPass = new THREE.RenderPass( scene, camera );
+
+    composer = new THREE.EffectComposer( renderer );
+    composer.setSize( window.innerWidth, window.innerHeight );
+    composer.addPass( renderPass );
+
     window.addEventListener( 'resize', onWindowResize, false );
 
     // stats
@@ -58,7 +64,8 @@ function onWindowResize()
 function animate()
 {
     requestAnimationFrame( animate );
-    renderer.render( scene, camera );
+
+    composer.render();
 
     stats.update();
 }
