@@ -97,6 +97,7 @@ $( document ).ready(function()
     }
 
     init();
+    createOrditControl();
     loadScene();
     animate();
 });

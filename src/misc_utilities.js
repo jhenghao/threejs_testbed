@@ -3,6 +3,8 @@
 const textureDir = "../textures/";
 var container, stats, controls;
 var camera, scene, renderer, composer;
+var animateCallback;
+var prevTimestamp = null;
 
 
 function loadShaders (vertShaderPath, fragShaderPath, callback)
@@ -28,10 +30,6 @@ function init()
     camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.25, 2000 );
     camera.position.set( - 1.8, 0.9, 2.7 );
 
-    controls = new THREE.OrbitControls( camera );
-    controls.target.set( 0, - 0.2, - 0.2 );
-    controls.update();
-
     scene = new THREE.Scene();
 
     renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -53,6 +51,13 @@ function init()
     container.appendChild( stats.dom );
 }
 
+function createOrditControl()
+{
+    controls = new THREE.OrbitControls( camera );
+    controls.target.set( 0, - 0.2, - 0.2 );
+    controls.update();
+}
+
 function onWindowResize()
 {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -61,11 +66,20 @@ function onWindowResize()
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
-function animate()
+function animate(timestamp)
 {
     requestAnimationFrame( animate );
 
-    composer.render();
+    let deltaTime = null;
+    if (prevTimestamp && animateCallback)
+    {
+        deltaTime = timestamp - prevTimestamp;
+        animateCallback(deltaTime);
+    }
+
+    composer.render(deltaTime);
 
     stats.update();
+
+    prevTimestamp = timestamp;
 }
