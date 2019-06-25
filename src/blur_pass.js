@@ -89,7 +89,6 @@ BlurPass.prototype = Object.assign( Object.create( THREE.Pass.prototype ), {
 		renderer.clear();
 		this.fsQuad.render( renderer );
 
-
 		// Render quad with blured scene into texture (convolution pass 2)
 
 		this.convolutionUniforms[ "tDiffuse" ].value = this.renderTargetX.texture;
@@ -107,7 +106,7 @@ BlurPass.prototype = Object.assign( Object.create( THREE.Pass.prototype ), {
 
 		if ( maskActive ) renderer.context.enable( renderer.context.STENCIL_TEST );
 
-		renderer.setRenderTarget( readBuffer );
+		renderer.setRenderTarget( this.renderToScreen ? null : readBuffer );
 		if ( this.clear ) renderer.clear();
 		this.fsQuad.render( renderer );
 

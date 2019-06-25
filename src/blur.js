@@ -21,6 +21,6 @@ $( document ).ready(function()
     }
 
     init();
-    loadScene();
+	loadScene();
     animate();
 });

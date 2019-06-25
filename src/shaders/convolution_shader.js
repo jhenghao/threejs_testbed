@@ -64,10 +64,11 @@ var ConvolutionShader = {
 
 		}
 
-		let kMaxKernelSize = 25;
-		let kernelSize = 2 * Math.ceil( sigma * 3.0 ) + 1;
-		if ( kernelSize > kMaxKernelSize ) kernelSize = kMaxKernelSize;
+		let cMaxSigmaSize = 10;
+		if ( sigma > cMaxSigmaSize )
+			sigma = cMaxSigmaSize;
 
+		let kernelSize = 2 * Math.ceil( sigma * 3.0 ) + 1;
 		let halfWidth = ( kernelSize - 1 ) * 0.5;
 
 		let values = new Array( kernelSize );

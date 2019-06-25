@@ -6,6 +6,8 @@ var camera, scene, renderer, composer;
 var animateCallback;
 var prevTimestamp = null;
 
+var renderCustom = null;
+
 
 function loadShaders (vertShaderPath, fragShaderPath, callback)
 {
@@ -77,7 +79,10 @@ function animate(timestamp)
         animateCallback(deltaTime);
     }
 
-    composer.render(deltaTime);
+    if (renderCustom == null)
+        composer.render(deltaTime);
+    else
+        renderCustom();
 
     stats.update();
 
