@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - Shadow Map example</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+			}
+			a {
+				color: #f00;
+				font-weight: bold;
+				text-decoration: underline;
+				cursor: pointer
+			}
+		</style>
+	</head>
+	<body>
+		<div id="info">
+		<a href="http://threejs.org" target="_blank" rel="noopener">three.js</a> - Shadow Map example by <a href="https://github.com/arya-s">arya-s</a>
+		</div>
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script src="../three.js-master/build/three.js"></script>
+		<script src="../three.js-master/examples/js/libs/dat.gui.min.js"></script>
+		<script src="../three.js-master/examples/js/libs/stats.min.js"></script>
+		<script src="../three.js-master/examples/js/controls/OrbitControls.js"></script>
+		<script src="../three.js-master/examples/js/postprocessing/EffectComposer.js"></script>
+		<script src="../three.js-master/examples/js/postprocessing/RenderPass.js"></script>
+		<script src="../three.js-master/examples/js/postprocessing/ShaderPass.js"></script>
+		<script src="../three.js-master/examples/js/postprocessing/TexturePass.js"></script>
+		<script src="../three.js-master/examples/js/shaders/CopyShader.js"></script>
+		<script src="../three.js-master/examples/js/shaders/UnpackDepthRGBAShader.js"></script>
+		<script src="../three.js-master/examples/js/utils/ShadowMapViewer.js"></script>
+		<script src="../three.js-master/examples/js/WebGL.js"></script>
+		<script src="misc_utilities.js"></script>
+		<script src="webgl_uniforms.js"></script>
+		<script src="webgl_utilities.js"></script>
+		<script src="webgl_program.js"></script>
+		<script src="webgl_renderer.js"></script>
+		<script src="shadowmap.js"></script>
+	</body>
+</html>
