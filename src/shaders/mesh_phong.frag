@@ -1,14 +1,22 @@
 #define PHONG
 
+precision highp float;
+precision highp int;
+
+
+#define USE_SHADOWMAP
+
+//#define PHYSICALLY_CORRECT_LIGHTS
+
 #define GAMMA_FACTOR 2
+
 
 #define PI 3.14159265359
 #define RECIPROCAL_PI 0.31830988618
 
 #define saturate(a) clamp( a, 0.0, 1.0 )
 
-precision highp float;
-precision highp int;
+//#include <common>
 
 struct IncidentLight {
 	vec3 color;
@@ -35,63 +43,10 @@ vec3 inverseTransformDirection( in vec3 dir, in mat4 matrix ) {
 
 }
 
+
+
 uniform mat4 viewMatrix;
 uniform vec3 cameraPosition;
-
-#define TONE_MAPPING
-
-#ifndef saturate
-	#define saturate(a) clamp( a, 0.0, 1.0 )
-#endif
-
-uniform float toneMappingExposure;
-uniform float toneMappingWhitePoint;
-
-// exposure only
-vec3 LinearToneMapping( vec3 color ) {
-
-	return toneMappingExposure * color;
-
-}
-
-// source: https://www.cs.utah.edu/~reinhard/cdrom/
-vec3 ReinhardToneMapping( vec3 color ) {
-
-	color *= toneMappingExposure;
-	return saturate( color / ( vec3( 1.0 ) + color ) );
-
-}
-
-// source: http://filmicgames.com/archives/75
-#define Uncharted2Helper( x ) max( ( ( x * ( 0.15 * x + 0.10 * 0.50 ) + 0.20 * 0.02 ) / ( x * ( 0.15 * x + 0.50 ) + 0.20 * 0.30 ) ) - 0.02 / 0.30, vec3( 0.0 ) )
-vec3 Uncharted2ToneMapping( vec3 color ) {
-
-	// John Hable's filmic operator from Uncharted 2 video game
-	color *= toneMappingExposure;
-	return saturate( Uncharted2Helper( color ) / Uncharted2Helper( vec3( toneMappingWhitePoint ) ) );
-
-}
-
-// source: http://filmicgames.com/archives/75
-vec3 OptimizedCineonToneMapping( vec3 color ) {
-
-	// optimized filmic operator by Jim Hejl and Richard Burgess-Dawson
-	color *= toneMappingExposure;
-	color = max( vec3( 0.0 ), color - 0.004 );
-	return pow( ( color * ( 6.2 * color + 0.5 ) ) / ( color * ( 6.2 * color + 1.7 ) + 0.06 ), vec3( 2.2 ) );
-
-}
-
-// source: https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-vec3 ACESFilmicToneMapping( vec3 color ) {
-
-	color *= toneMappingExposure;
-	return saturate( ( color * ( 2.51 * color + 0.03 ) ) / ( color * ( 2.43 * color + 0.59 ) + 0.14 ) );
-
-}
-
-
-vec3 toneMapping( vec3 color ) { return LinearToneMapping( color ); }
 
 
 uniform vec3 diffuse;
@@ -119,6 +74,7 @@ uniform float opacity;
 
 #endif
 
+
 vec4 LinearToLinear( in vec4 value ) { return value; }
 
 vec4 GammaToLinear( in vec4 value, in float gammaFactor ) {
@@ -132,6 +88,7 @@ vec4 LinearToGamma( in vec4 value, in float gammaFactor ) {
 vec4 linearToOutputTexel( vec4 value ) {
 	return LinearToGamma( value, float( GAMMA_FACTOR ) );
 }
+
 
 uniform vec3 ambientLightColor;
 uniform vec3 lightProbe[ 9 ];
@@ -197,6 +154,8 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 	}
 
 #endif
+
+
 
 float punctualLightIntensityToIrradianceFactor( const in float lightDistance, const in float cutoffDistance, const in float decayExponent ) {
 
@@ -310,6 +269,11 @@ struct BlinnPhongMaterial {
 
 };
 
+
+
+//#include <bsdfs>
+
+
 vec3 BRDF_Diffuse_Lambert( const in vec3 diffuseColor ) {
 
 	return RECIPROCAL_PI * diffuseColor;
@@ -329,7 +293,7 @@ vec3 F_Schlick( const in vec3 specularColor, const in float dotLH ) {
 
 }
 
-float G_BlinnPhong_Implicit( /* const in float dotNL, const in float dotNV */ ) {
+float G_BlinnPhong_Implicit(  ) {
 
 	// geometry term is (n dot l)(n dot v) / 4(n dot l)(n dot v)
 	return 0.25;
@@ -353,7 +317,7 @@ vec3 BRDF_Specular_BlinnPhong( const in IncidentLight incidentLight, const in Ge
 
 	vec3 F = F_Schlick( specularColor, dotLH );
 
-	float G = G_BlinnPhong_Implicit( /* dotNL, dotNV */ );
+	float G = G_BlinnPhong_Implicit(  );
 
 	float D = D_BlinnPhong( shininess, dotNH );
 
@@ -363,8 +327,22 @@ vec3 BRDF_Specular_BlinnPhong( const in IncidentLight incidentLight, const in Ge
 
 void RE_Direct_BlinnPhong( const in IncidentLight directLight, const in GeometricContext geometry, const in BlinnPhongMaterial material, inout ReflectedLight reflectedLight ) {
 
-	float dotNL = saturate( dot( geometry.normal, directLight.direction ) );
-	vec3 irradiance = dotNL * directLight.color;
+	#ifdef TOON
+
+		vec3 irradiance = getGradientIrradiance( geometry.normal, directLight.direction ) * directLight.color;
+
+	#else
+
+		float dotNL = saturate( dot( geometry.normal, directLight.direction ) );
+		vec3 irradiance = dotNL * directLight.color;
+
+	#endif
+
+	#ifndef PHYSICALLY_CORRECT_LIGHTS
+
+		irradiance *= PI; // punctual light
+
+	#endif
 
 	reflectedLight.directDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 	reflectedLight.directSpecular += irradiance * BRDF_Specular_BlinnPhong( directLight, geometry, material.specularColor, material.specularShininess ) * material.specularStrength;
@@ -742,13 +720,6 @@ void main() {
 	vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
 
 	gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-
-#if defined( TONE_MAPPING )
-
-	gl_FragColor.rgb = toneMapping( gl_FragColor.rgb );
-
-#endif
-
 	gl_FragColor = linearToOutputTexel( gl_FragColor );
 
 }

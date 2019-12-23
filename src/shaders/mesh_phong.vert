@@ -1,7 +1,10 @@
 #define PHONG
 
+#define USE_SHADOWMAP
+
 precision highp float;
 precision highp int;
+
 
 uniform mat4 modelMatrix;
 uniform mat4 modelViewMatrix;
@@ -13,6 +16,7 @@ uniform vec3 cameraPosition;
 attribute vec3 position;
 attribute vec3 normal;
 attribute vec2 uv;
+
 
 #ifdef USE_TANGENT
 
@@ -122,6 +126,44 @@ vec3 transformedNormal = normalMatrix * objectNormal;
 #if defined( USE_ENVMAP ) || defined( DISTANCE ) || defined ( USE_SHADOWMAP )
 
 	vec4 worldPosition = modelMatrix * vec4( transformed, 1.0 );
+
+#endif
+
+
+#ifdef USE_SHADOWMAP
+
+	#if NUM_DIR_LIGHT_SHADOWS > 0
+
+	#pragma unroll_loop
+	for ( int i = 0; i < NUM_DIR_LIGHT_SHADOWS; i ++ ) {
+
+		vDirectionalShadowCoord[ i ] = directionalShadowMatrix[ i ] * worldPosition;
+
+	}
+
+	#endif
+
+	#if NUM_SPOT_LIGHT_SHADOWS > 0
+
+	#pragma unroll_loop
+	for ( int i = 0; i < NUM_SPOT_LIGHT_SHADOWS; i ++ ) {
+
+		vSpotShadowCoord[ i ] = spotShadowMatrix[ i ] * worldPosition;
+
+	}
+
+	#endif
+
+	#if NUM_POINT_LIGHT_SHADOWS > 0
+
+	#pragma unroll_loop
+	for ( int i = 0; i < NUM_POINT_LIGHT_SHADOWS; i ++ ) {
+
+		vPointShadowCoord[ i ] = pointShadowMatrix[ i ] * worldPosition;
+
+	}
+
+	#endif
 
 #endif
 
