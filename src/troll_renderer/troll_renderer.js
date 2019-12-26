@@ -405,28 +405,6 @@ function TrollRenderer(parameters) {
             return;
         }
 
-        let mode = null;
-        switch (object.drawMode) {
-
-            case THREE.TrianglesDrawMode:
-                mode = _gl.TRIANGLES;
-                break;
-
-            case THREE.TriangleStripDrawMode:
-                mode = _gl.TRIANGLE_STRIP;
-                break;
-
-            case THREE.TriangleFanDrawMode:
-                mode = _gl.TRIANGLE_FAN;
-                break;
-
-        }
-
-        if (mode == null) {
-            console.log('Unknown draw mode.');
-            return;
-        }
-
         if (index != null) {
 
             let bufferInfo = GlUtilities.geometryToBufferInfo.get(geometry);
@@ -448,11 +426,11 @@ function TrollRenderer(parameters) {
 
             _gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, buffer);
 
-            _gl.drawElements(mode, drawCount, type, drawStart * bytesPerElement);
+            _gl.drawElements(_gl.TRIANGLES, drawCount, type, drawStart * bytesPerElement);
         }
         else {
 
-            _gl.drawArrays(mode, drawStart, drawCount);
+            _gl.drawArrays(_gl.TRIANGLES, drawStart, drawCount);
 
         }
     };
