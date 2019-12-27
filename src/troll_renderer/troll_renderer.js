@@ -4,13 +4,13 @@ import { BasicUtilities } from './basic_utilities.js'
 import { GlUtilities } from './gl_utilities.js'
 import { LightUtilities } from './light_utilities.js'
 import { MaterialUtilities } from './material_utilities.js'
+import { TextureUtilities } from './texture_utilities.js'
 
 import { WebGLCapabilities } from '../../three.js/src/renderers/webgl/WebGLCapabilities.js'
 import { WebGLExtensions } from '../../three.js/src/renderers/webgl/WebGLExtensions.js'
-import { WebGLInfo } from '../../three.js/src/renderers/webgl/WebGLInfo.js'
 import { WebGLProperties } from '../../three.js/src/renderers/webgl/WebGLProperties.js'
 import { WebGLState } from '../../three.js/src/renderers/webgl/WebGLState.js'
-import { WebGLTextures } from '../../three.js/src/renderers/webgl/WebGLTextures.js'
+
 import { WebGLUtils } from '../../three.js/src/renderers/webgl/WebGLUtils.js'
 import { WebGLRenderLists } from '../../three.js/src/renderers/webgl/WebGLRenderLists.js';
 
@@ -87,9 +87,8 @@ function TrollRenderer(parameters) {
     let _capabilities = new WebGLCapabilities(_gl, _extensions, parameters);
     let _utils = new WebGLUtils(_gl, _extensions, _capabilities);
     let _state = new WebGLState(_gl, _extensions, _capabilities);
-    let _info = new WebGLInfo(_gl);
     let _properties = new WebGLProperties();
-    let _textures = new WebGLTextures(_gl, _extensions, _state, _properties, _capabilities, _utils, _info);
+    let _textures = new TextureUtilities(_gl, _state, _properties, _capabilities, _utils);
 
     let _materialToProgramInfo = new Map();
     let _depthMaterial;
@@ -120,7 +119,6 @@ function TrollRenderer(parameters) {
     _this.extensions = _extensions;
     _this.properties = _properties;
     _this.state = _state;
-    _this.info = _info;
 
     // API
 
