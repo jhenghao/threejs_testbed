@@ -1,7 +1,7 @@
 "use strict";
 
 import { BasicUtilities } from './basic_utilities.js'
-import { GlUtilities } from './gl_utilities.js'
+import { GlProgramUtilities } from './gl_program_utilities.js'
 import { LightUtilities } from './light_utilities.js'
 import { MaterialUtilities } from './material_utilities.js'
 import { TextureUtilities } from './texture_utilities.js'
@@ -88,7 +88,7 @@ function TrollRenderer(parameters) {
     let _utils = new WebGLUtils(_gl, _extensions, _capabilities);
     let _state = new WebGLState(_gl, _extensions, _capabilities);
     let _properties = new WebGLProperties();
-    let _textures = new TextureUtilities(_gl, _state, _properties, _capabilities, _utils);
+    let _textures = new TextureUtilities(_gl, _extensions, _properties, _capabilities, _utils);
 
     let _materialToProgramInfo = new Map();
     let _depthMaterial;
@@ -359,12 +359,12 @@ function TrollRenderer(parameters) {
         let programInfo = _materialToProgramInfo.get(material);
         if (programInfo == null) {
 
-            programInfo = GlUtilities.createProgram(_gl, material.vertexShader, material.fragmentShader);
+            programInfo = GlProgramUtilities.createProgram(_gl, material.vertexShader, material.fragmentShader);
             _materialToProgramInfo.set(material, programInfo);
 
         }
 
-        GlUtilities.setProgram(_gl, programInfo, object, geometry, material, camera, _textures);
+        GlProgramUtilities.setProgram(_gl, programInfo, object, geometry, material, camera, _textures);
 
         let frontFaceCW = (object.isMesh && object.matrixWorld.determinant() < 0);
 
@@ -405,7 +405,7 @@ function TrollRenderer(parameters) {
 
         if (index != null) {
 
-            let bufferInfo = GlUtilities.geometryToBufferInfo.get(geometry);
+            let bufferInfo = GlProgramUtilities.geometryToBufferInfo.get(geometry);
 
             if (bufferInfo == null) {
                 console.log("Failed to get geometry buffer.");

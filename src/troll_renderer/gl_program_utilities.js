@@ -2,11 +2,11 @@
 
 import { WebGLUniforms } from '../../three.js/src/renderers/webgl/WebGLUniforms.js'
 
-function GlUtilities ()
+function GlProgramUtilities ()
 {
 }
 
-GlUtilities.fetchAttributeLocations = function (gl, program) {
+GlProgramUtilities.fetchAttributeLocations = function (gl, program) {
 
     var attributes = {};
 
@@ -27,7 +27,7 @@ GlUtilities.fetchAttributeLocations = function (gl, program) {
 
 }
 
-GlUtilities.createShader = function (gl, type, string) {
+GlProgramUtilities.createShader = function (gl, type, string) {
 
     let shader = gl.createShader(type);
 
@@ -50,12 +50,12 @@ GlUtilities.createShader = function (gl, type, string) {
 
 }
 
-GlUtilities.createProgram = function (gl, vertexShaderCode, fragmentShaderCode) {
+GlProgramUtilities.createProgram = function (gl, vertexShaderCode, fragmentShaderCode) {
 
     let program = gl.createProgram();
 
-    let glVertexShader = GlUtilities.createShader(gl, gl.VERTEX_SHADER, vertexShaderCode);
-    let glFragmentShader = GlUtilities.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderCode);
+    let glVertexShader = GlProgramUtilities.createShader(gl, gl.VERTEX_SHADER, vertexShaderCode);
+    let glFragmentShader = GlProgramUtilities.createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderCode);
 
     if (glVertexShader == null || glFragmentShader == null)
         return null;
@@ -80,7 +80,7 @@ GlUtilities.createProgram = function (gl, vertexShaderCode, fragmentShaderCode) 
         return null;
     }
 
-    let attributeLocations = GlUtilities.fetchAttributeLocations(gl, program);
+    let attributeLocations = GlProgramUtilities.fetchAttributeLocations(gl, program);
     let uniforms = new WebGLUniforms(gl, program);
 
     return {
@@ -90,10 +90,9 @@ GlUtilities.createProgram = function (gl, vertexShaderCode, fragmentShaderCode) 
     };
 }
 
-GlUtilities.createBuffer = function (gl, attribute, bufferType) {
+GlProgramUtilities.createBuffer = function (gl, attribute, bufferType) {
 
     let array = attribute.array;
-    //let usage = attribute.usage ? gl.DYNAMIC_DRAW : gl.STATIC_DRAW;
     let usage = attribute.usage;
 
     let buffer = gl.createBuffer();
@@ -148,7 +147,7 @@ GlUtilities.createBuffer = function (gl, attribute, bufferType) {
 
 }
 
-GlUtilities.createGeometryBuffer = function (gl, geometry) {
+GlProgramUtilities.createGeometryBuffer = function (gl, geometry) {
 
     let index = geometry.index;
     let geometryAttributes = geometry.attributes;
@@ -157,30 +156,30 @@ GlUtilities.createGeometryBuffer = function (gl, geometry) {
 
     if (index !== null) {
 
-        buffers.set(index, GlUtilities.createBuffer(gl, index, gl.ELEMENT_ARRAY_BUFFER));
+        buffers.set(index, GlProgramUtilities.createBuffer(gl, index, gl.ELEMENT_ARRAY_BUFFER));
 
     }
 
     for (let name in geometryAttributes) {
 
         buffers.set(geometryAttributes[name],
-            GlUtilities.createBuffer(gl, geometryAttributes[name], gl.ARRAY_BUFFER));
+            GlProgramUtilities.createBuffer(gl, geometryAttributes[name], gl.ARRAY_BUFFER));
 
     }
 
     return buffers;
 }
 
-GlUtilities.setVertexAttributes = function (gl, programInfo, object, geometry, material) {
+GlProgramUtilities.setVertexAttributes = function (gl, programInfo, object, geometry, material) {
 
     //state.initAttributes();
 
-    let bufferInfo = GlUtilities.geometryToBufferInfo.get(geometry);
+    let bufferInfo = GlProgramUtilities.geometryToBufferInfo.get(geometry);
     if (bufferInfo == null) {
 
-        bufferInfo = GlUtilities.createGeometryBuffer(gl, geometry);
-        GlUtilities.geometryToBufferInfo.set(geometry, bufferInfo);
-        
+        bufferInfo = GlProgramUtilities.createGeometryBuffer(gl, geometry);
+        GlProgramUtilities.geometryToBufferInfo.set(geometry, bufferInfo);
+
     }
 
     let attributeLocations = programInfo.attributeLocations;
@@ -264,7 +263,7 @@ GlUtilities.setVertexAttributes = function (gl, programInfo, object, geometry, m
 
 }
 
-GlUtilities.setUniforms = function (gl, programInfo, object, material, camera, textures) {
+GlProgramUtilities.setUniforms = function (gl, programInfo, object, material, camera, textures) {
 
     let p_uniforms = programInfo.uniforms;
     let m_uniforms = material.uniforms;
@@ -282,15 +281,15 @@ GlUtilities.setUniforms = function (gl, programInfo, object, material, camera, t
     p_uniforms.setValue(gl, 'modelMatrix', object.matrixWorld);
 }
 
-GlUtilities.setProgram = function (gl, programInfo, object, geometry, material, camera, textures) {
+GlProgramUtilities.setProgram = function (gl, programInfo, object, geometry, material, camera, textures) {
 
     gl.useProgram(programInfo.program);
 
-    GlUtilities.setVertexAttributes(gl, programInfo, object, geometry, material);
-    GlUtilities.setUniforms(gl, programInfo, object, material, camera, textures);
+    GlProgramUtilities.setVertexAttributes(gl, programInfo, object, geometry, material);
+    GlProgramUtilities.setUniforms(gl, programInfo, object, material, camera, textures);
 
 }
 
-GlUtilities.geometryToBufferInfo = new Map();
+GlProgramUtilities.geometryToBufferInfo = new Map();
 
-export { GlUtilities };
+export { GlProgramUtilities };

@@ -3,19 +3,19 @@
 import { LinearFilter, LinearMipmapLinearFilter, LinearMipmapNearestFilter, NearestFilter, NearestMipmapLinearFilter, NearestMipmapNearestFilter, RGBFormat, RGBAFormat, DepthFormat, DepthStencilFormat, UnsignedShortType, UnsignedIntType, UnsignedInt248Type, FloatType, HalfFloatType, MirroredRepeatWrapping, ClampToEdgeWrapping, RepeatWrapping } from '../../three.js/src/constants.js';
 import { _Math } from '../../three.js/src/math/Math.js';
 
-function TextureUtilities ( _gl, state, properties, capabilities, utils)
+function TextureUtilities ( _gl, extensions, properties, capabilities, utils)
 {
+    let _isWebGL2 = capabilities.isWebGL2;
+	let _maxTextures = capabilities.maxTextures;
+	let _maxTextureSize = capabilities.maxTextureSize;
 
-    var isWebGL2 = capabilities.isWebGL2;
-    var maxTextures = capabilities.maxTextures;
-
-    var wrappingToGL = {
+    let _wrappingToGL = {
 		[ RepeatWrapping ]: _gl.REPEAT,
 		[ ClampToEdgeWrapping ]: _gl.CLAMP_TO_EDGE,
 		[ MirroredRepeatWrapping ]: _gl.MIRRORED_REPEAT
 	};
 
-	var filterToGL = {
+	let _filterToGL = {
 		[ NearestFilter ]: _gl.NEAREST,
 		[ NearestMipmapNearestFilter ]: _gl.NEAREST_MIPMAP_NEAREST,
 		[ NearestMipmapLinearFilter ]: _gl.NEAREST_MIPMAP_LINEAR,
@@ -25,25 +25,32 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		[ LinearMipmapLinearFilter ]: _gl.LINEAR_MIPMAP_LINEAR
 	};
 
-    var textureUnits = 0;
+	let _currentTextureSlot = null;
+	let _currentBoundTextures = {};
+
+	let _emptyTextures = {};
+	_emptyTextures[ _gl.TEXTURE_2D ] = createTexture( _gl.TEXTURE_2D, _gl.TEXTURE_2D, 1 );
+	_emptyTextures[ _gl.TEXTURE_CUBE_MAP ] = createTexture( _gl.TEXTURE_CUBE_MAP, _gl.TEXTURE_CUBE_MAP_POSITIVE_X, 6 );
+
+    let _textureUnits = 0;
 
 	function resetTextureUnits() {
 
-		textureUnits = 0;
+		_textureUnits = 0;
 
 	}
 
 	function allocateTextureUnit() {
 
-		var textureUnit = textureUnits;
+		var textureUnit = _textureUnits;
 
-		if ( textureUnit >= maxTextures ) {
+		if ( textureUnit >= _maxTextures ) {
 
-			console.warn( 'THREE.WebGLTextures: Trying to use ' + textureUnit + ' texture units while this GPU supports only ' + maxTextures );
+			console.warn( 'TextureUtilities: Trying to use ' + textureUnit + ' texture units while this GPU supports only ' + _maxTextures );
 
 		}
 
-		textureUnits += 1;
+		_textureUnits += 1;
 
 		return textureUnit;
 
@@ -59,8 +66,8 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 		properties.remove( texture );
 
-    }
-    
+	}
+
     function deallocateRenderTarget( renderTarget ) {
 
 		var renderTargetProperties = properties.get( renderTarget );
@@ -173,7 +180,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 				var context = canvas.getContext( '2d' );
 				context.drawImage( image, 0, 0, width, height );
 
-				console.warn( 'THREE.WebGLRenderer: Texture has been resized from (' + image.width + 'x' + image.height + ') to (' + width + 'x' + height + ').' );
+				console.warn( 'TextureUtilities: Texture has been resized from (' + image.width + 'x' + image.height + ') to (' + width + 'x' + height + ').' );
 
 				return canvas;
 
@@ -181,7 +188,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 				if ( 'data' in image ) {
 
-					console.warn( 'THREE.WebGLRenderer: Image in DataTexture is too big (' + image.width + 'x' + image.height + ').' );
+					console.warn( 'TextureUtilities: Image in DataTexture is too big (' + image.width + 'x' + image.height + ').' );
 
 				}
 
@@ -194,7 +201,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		return image;
 
 	}
-    
+
     function isPowerOfTwo( image ) {
 
 		return _Math.isPowerOfTwo( image.width ) && _Math.isPowerOfTwo( image.height );
@@ -203,7 +210,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 	function textureNeedsPowerOfTwo( texture ) {
 
-		if ( isWebGL2 ) return false;
+		if ( _isWebGL2 ) return false;
 
 		return ( texture.wrapS !== ClampToEdgeWrapping || texture.wrapT !== ClampToEdgeWrapping ) ||
 			( texture.minFilter !== NearestFilter && texture.minFilter !== LinearFilter );
@@ -227,16 +234,16 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		textureProperties.__maxMipLevel = Math.log( Math.max( width, height ) ) * Math.LOG2E;
 
 	}
-    
+
     function getInternalFormat( internalFormatName, glFormat, glType ) {
 
-		if ( isWebGL2 === false ) return glFormat;
+		if ( _isWebGL2 === false ) return glFormat;
 
 		if ( internalFormatName !== null ) {
 
 			if ( _gl[ internalFormatName ] !== undefined ) return _gl[ internalFormatName ];
 
-			console.warn( 'THREE.WebGLRenderer: Attempt to use non-existing WebGL internal format \'' + internalFormatName + '\'' );
+			console.warn( 'TextureUtilities: Attempt to use non-existing WebGL internal format \'' + internalFormatName + '\'' );
 
 		}
 
@@ -273,29 +280,127 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 		} else if ( internalFormat === _gl.RGB16F || internalFormat === _gl.RGB32F ) {
 
-			console.warn( 'THREE.WebGLRenderer: Floating point textures with RGB format not supported. Please use RGBA instead.' );
+			console.warn( 'TextureUtilities: Floating point textures with RGB format not supported. Please use RGBA instead.' );
 
 		}
 
 		return internalFormat;
 
-    }
-    
+	}
+
+	function activeTexture( webglSlot ) {
+
+		if ( webglSlot === undefined ) webglSlot = _gl.TEXTURE0 + _maxTextures - 1;
+
+		if ( _currentTextureSlot !== webglSlot ) {
+
+			_gl.activeTexture( webglSlot );
+			_currentTextureSlot = webglSlot;
+
+		}
+
+	}
+
+	function bindTexture( webglType, webglTexture ) {
+
+		if ( _currentTextureSlot === null ) {
+
+			activeTexture();
+
+		}
+
+		var boundTexture = _currentBoundTextures[ _currentTextureSlot ];
+
+		if ( boundTexture === undefined ) {
+
+			boundTexture = { type: undefined, texture: undefined };
+			_currentBoundTextures[ _currentTextureSlot ] = boundTexture;
+
+		}
+
+		if ( boundTexture.type !== webglType || boundTexture.texture !== webglTexture ) {
+
+			_gl.bindTexture( webglType, webglTexture || _emptyTextures[ webglType ] );
+
+			boundTexture.type = webglType;
+			boundTexture.texture = webglTexture;
+
+		}
+
+	}
+
+	function unbindTexture() {
+
+		var boundTexture = _currentBoundTextures[ _currentTextureSlot ];
+
+		if ( boundTexture !== undefined && boundTexture.type !== undefined ) {
+
+			_gl.bindTexture( boundTexture.type, null );
+
+			boundTexture.type = undefined;
+			boundTexture.texture = undefined;
+
+		}
+
+	}
+
+	function compressedTexImage2D() {
+
+		try {
+
+			_gl.compressedTexImage2D.apply( _gl, arguments );
+
+		} catch ( error ) {
+
+			console.error( 'TextureUtilities:', error );
+
+		}
+
+	}
+
+	function texImage2D() {
+
+		try {
+
+			_gl.texImage2D.apply( _gl, arguments );
+
+		} catch ( error ) {
+
+			console.error( 'TextureUtilities:', error );
+
+		}
+
+	}
+
+	function texImage3D() {
+
+		try {
+
+			gl.texImage3D.apply( gl, arguments );
+
+		} catch ( error ) {
+
+			console.error( 'TextureUtilities:', error );
+
+		}
+
+	}
+
     function setTextureParameters( textureType, texture, supportsMips ) {
 
 		if ( supportsMips ) {
 
-			_gl.texParameteri( textureType, _gl.TEXTURE_WRAP_S, wrappingToGL[ texture.wrapS ] );
-			_gl.texParameteri( textureType, _gl.TEXTURE_WRAP_T, wrappingToGL[ texture.wrapT ] );
+			_gl.texParameteri( textureType, _gl.TEXTURE_WRAP_S, _wrappingToGL[ texture.wrapS ] );
+			_gl.texParameteri( textureType, _gl.TEXTURE_WRAP_T, _wrappingToGL[ texture.wrapT ] );
 
 			if ( textureType === _gl.TEXTURE_3D || textureType === _gl.TEXTURE_2D_ARRAY ) {
 
-				_gl.texParameteri( textureType, _gl.TEXTURE_WRAP_R, wrappingToGL[ texture.wrapR ] );
+				_gl.texParameteri( textureType, _gl.TEXTURE_WRAP_R, _wrappingToGL[ texture.wrapR ] );
 
 			}
 
-			_gl.texParameteri( textureType, _gl.TEXTURE_MAG_FILTER, filterToGL[ texture.magFilter ] );
-			_gl.texParameteri( textureType, _gl.TEXTURE_MIN_FILTER, filterToGL[ texture.minFilter ] );
+			_gl.texParameteri( textureType, _gl.TEXTURE_MAG_FILTER, _filterToGL[ texture.magFilter ] );
+			_gl.texParameteri( textureType, _gl.TEXTURE_MIN_FILTER, _filterToGL[ texture.minFilter ] );
 
 		} else {
 
@@ -310,7 +415,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			if ( texture.wrapS !== ClampToEdgeWrapping || texture.wrapT !== ClampToEdgeWrapping ) {
 
-				console.warn( 'THREE.WebGLRenderer: Texture is not power of two. Texture.wrapS and Texture.wrapT should be set to THREE.ClampToEdgeWrapping.' );
+				console.warn( 'TextureUtilities: Texture is not power of two. Texture.wrapS and Texture.wrapT should be set to THREE.ClampToEdgeWrapping.' );
 
 			}
 
@@ -319,19 +424,18 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			if ( texture.minFilter !== NearestFilter && texture.minFilter !== LinearFilter ) {
 
-				console.warn( 'THREE.WebGLRenderer: Texture is not power of two. Texture.minFilter should be set to THREE.NearestFilter or THREE.LinearFilter.' );
+				console.warn( 'TextureUtilities: Texture is not power of two. Texture.minFilter should be set to THREE.NearestFilter or THREE.LinearFilter.' );
 
 			}
 
 		}
 
-        /*
 		var extension = extensions.get( 'EXT_texture_filter_anisotropic' );
 
 		if ( extension ) {
 
 			if ( texture.type === FloatType && extensions.get( 'OES_texture_float_linear' ) === null ) return;
-			if ( texture.type === HalfFloatType && ( isWebGL2 || extensions.get( 'OES_texture_half_float_linear' ) ) === null ) return;
+			if ( texture.type === HalfFloatType && ( _isWebGL2 || extensions.get( 'OES_texture_half_float_linear' ) ) === null ) return;
 
 			if ( texture.anisotropy > 1 || properties.get( texture ).__currentAnisotropy ) {
 
@@ -341,7 +445,25 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 			}
 
         }
-        */
+
+	}
+
+	function createTexture( type, target, count ) {
+
+		var data = new Uint8Array( 4 ); // 4 is required to match default unpack alignment of 4.
+		var texture = _gl.createTexture();
+
+		_gl.bindTexture( type, texture );
+		_gl.texParameteri( type, _gl.TEXTURE_MIN_FILTER, _gl.NEAREST );
+		_gl.texParameteri( type, _gl.TEXTURE_MAG_FILTER, _gl.NEAREST );
+
+		for ( var i = 0; i < count; i ++ ) {
+
+			_gl.texImage2D( target + i, 0, _gl.RGBA, 1, 1, 0, _gl.RGBA, _gl.UNSIGNED_BYTE, data );
+
+		}
+
+		return texture;
 
 	}
 
@@ -358,7 +480,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		}
 
     }
-    
+
     function uploadTexture( textureProperties, texture, slot ) {
 
 		var textureType = _gl.TEXTURE_2D;
@@ -368,17 +490,17 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 		initTexture( textureProperties, texture );
 
-		state.activeTexture( _gl.TEXTURE0 + slot );
-		state.bindTexture( textureType, textureProperties.__webglTexture );
+		activeTexture( _gl.TEXTURE0 + slot );
+		bindTexture( textureType, textureProperties.__webglTexture );
 
 		_gl.pixelStorei( _gl.UNPACK_FLIP_Y_WEBGL, texture.flipY );
 		_gl.pixelStorei( _gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, texture.premultiplyAlpha );
 		_gl.pixelStorei( _gl.UNPACK_ALIGNMENT, texture.unpackAlignment );
 
 		var needsPowerOfTwo = textureNeedsPowerOfTwo( texture ) && isPowerOfTwo( texture.image ) === false;
-		var image = resizeImage( texture.image, needsPowerOfTwo, false, maxTextureSize );
+		var image = resizeImage( texture.image, needsPowerOfTwo, false, _maxTextureSize );
 
-		var supportsMips = isPowerOfTwo( image ) || isWebGL2,
+		var supportsMips = isPowerOfTwo( image ) || _isWebGL2,
 			glFormat = utils.convert( texture.format ),
 			glType = utils.convert( texture.type ),
 			glInternalFormat = getInternalFormat( texture.internalFormat, glFormat, glType );
@@ -395,10 +517,10 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			if ( texture.type === FloatType ) {
 
-				if ( isWebGL2 === false ) throw new Error( 'Float Depth Texture only supported in WebGL2.0' );
+				if ( _isWebGL2 === false ) throw new Error( 'Float Depth Texture only supported in WebGL2.0' );
 				glInternalFormat = _gl.DEPTH_COMPONENT32F;
 
-			} else if ( isWebGL2 ) {
+			} else if ( _isWebGL2 ) {
 
 				// WebGL 2.0 requires signed internalformat for glTexImage2D
 				glInternalFormat = _gl.DEPTH_COMPONENT16;
@@ -412,7 +534,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 				// (https://www.khronos.org/registry/webgl/extensions/WEBGL_depth_texture/)
 				if ( texture.type !== UnsignedShortType && texture.type !== UnsignedIntType ) {
 
-					console.warn( 'THREE.WebGLRenderer: Use UnsignedShortType or UnsignedIntType for DepthFormat DepthTexture.' );
+					console.warn( 'TextureUtilities: Use UnsignedShortType or UnsignedIntType for DepthFormat DepthTexture.' );
 
 					texture.type = UnsignedShortType;
 					glType = utils.convert( texture.type );
@@ -432,7 +554,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 				// (https://www.khronos.org/registry/webgl/extensions/WEBGL_depth_texture/)
 				if ( texture.type !== UnsignedInt248Type ) {
 
-					console.warn( 'THREE.WebGLRenderer: Use UnsignedInt248Type for DepthStencilFormat DepthTexture.' );
+					console.warn( 'TextureUtilities: Use UnsignedInt248Type for DepthStencilFormat DepthTexture.' );
 
 					texture.type = UnsignedInt248Type;
 					glType = utils.convert( texture.type );
@@ -441,7 +563,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			}
 
-			state.texImage2D( _gl.TEXTURE_2D, 0, glInternalFormat, image.width, image.height, 0, glFormat, glType, null );
+			texImage2D( _gl.TEXTURE_2D, 0, glInternalFormat, image.width, image.height, 0, glFormat, glType, null );
 
 		} else if ( texture.isDataTexture ) {
 
@@ -454,7 +576,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 				for ( var i = 0, il = mipmaps.length; i < il; i ++ ) {
 
 					mipmap = mipmaps[ i ];
-					state.texImage2D( _gl.TEXTURE_2D, i, glInternalFormat, mipmap.width, mipmap.height, 0, glFormat, glType, mipmap.data );
+					texImage2D( _gl.TEXTURE_2D, i, glInternalFormat, mipmap.width, mipmap.height, 0, glFormat, glType, mipmap.data );
 
 				}
 
@@ -463,7 +585,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			} else {
 
-				state.texImage2D( _gl.TEXTURE_2D, 0, glInternalFormat, image.width, image.height, 0, glFormat, glType, image.data );
+				texImage2D( _gl.TEXTURE_2D, 0, glInternalFormat, image.width, image.height, 0, glFormat, glType, image.data );
 				textureProperties.__maxMipLevel = 0;
 
 			}
@@ -478,17 +600,17 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 					if ( glFormat !== null ) {
 
-						state.compressedTexImage2D( _gl.TEXTURE_2D, i, glInternalFormat, mipmap.width, mipmap.height, 0, mipmap.data );
+						compressedTexImage2D( _gl.TEXTURE_2D, i, glInternalFormat, mipmap.width, mipmap.height, 0, mipmap.data );
 
 					} else {
 
-						console.warn( 'THREE.WebGLRenderer: Attempt to load unsupported compressed texture format in .uploadTexture()' );
+						console.warn( 'TextureUtilities: Attempt to load unsupported compressed texture format in .uploadTexture()' );
 
 					}
 
 				} else {
 
-					state.texImage2D( _gl.TEXTURE_2D, i, glInternalFormat, mipmap.width, mipmap.height, 0, glFormat, glType, mipmap.data );
+					texImage2D( _gl.TEXTURE_2D, i, glInternalFormat, mipmap.width, mipmap.height, 0, glFormat, glType, mipmap.data );
 
 				}
 
@@ -498,12 +620,12 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 		} else if ( texture.isDataTexture2DArray ) {
 
-			state.texImage3D( _gl.TEXTURE_2D_ARRAY, 0, glInternalFormat, image.width, image.height, image.depth, 0, glFormat, glType, image.data );
+			texImage3D( _gl.TEXTURE_2D_ARRAY, 0, glInternalFormat, image.width, image.height, image.depth, 0, glFormat, glType, image.data );
 			textureProperties.__maxMipLevel = 0;
 
 		} else if ( texture.isDataTexture3D ) {
 
-			state.texImage3D( _gl.TEXTURE_3D, 0, glInternalFormat, image.width, image.height, image.depth, 0, glFormat, glType, image.data );
+			texImage3D( _gl.TEXTURE_3D, 0, glInternalFormat, image.width, image.height, image.depth, 0, glFormat, glType, image.data );
 			textureProperties.__maxMipLevel = 0;
 
 		} else {
@@ -519,7 +641,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 				for ( var i = 0, il = mipmaps.length; i < il; i ++ ) {
 
 					mipmap = mipmaps[ i ];
-					state.texImage2D( _gl.TEXTURE_2D, i, glInternalFormat, glFormat, glType, mipmap );
+					texImage2D( _gl.TEXTURE_2D, i, glInternalFormat, glFormat, glType, mipmap );
 
 				}
 
@@ -528,7 +650,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			} else {
 
-				state.texImage2D( _gl.TEXTURE_2D, 0, glInternalFormat, glFormat, glType, image );
+				texImage2D( _gl.TEXTURE_2D, 0, glInternalFormat, glFormat, glType, image );
 				textureProperties.__maxMipLevel = 0;
 
 			}
@@ -555,7 +677,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		var glFormat = utils.convert( renderTarget.texture.format );
 		var glType = utils.convert( renderTarget.texture.type );
 		var glInternalFormat = getInternalFormat( renderTarget.texture.internalFormat, glFormat, glType );
-		state.texImage2D( textureTarget, 0, glInternalFormat, renderTarget.width, renderTarget.height, 0, glFormat, glType, null );
+		texImage2D( textureTarget, 0, glInternalFormat, renderTarget.width, renderTarget.height, 0, glFormat, glType, null );
 		_gl.bindFramebuffer( _gl.FRAMEBUFFER, framebuffer );
 		_gl.framebufferTexture2D( _gl.FRAMEBUFFER, attachment, textureTarget, properties.get( renderTarget.texture ).__webglTexture, 0 );
 		_gl.bindFramebuffer( _gl.FRAMEBUFFER, null );
@@ -623,7 +745,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		_gl.bindRenderbuffer( _gl.RENDERBUFFER, null );
 
 	}
-    
+
     // Setup GL resources for a non-texture depth buffer
 	function setupDepthRenderbuffer( renderTarget ) {
 
@@ -664,7 +786,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		_gl.bindFramebuffer( _gl.FRAMEBUFFER, null );
 
 	}
-    
+
     // Set up GL resources for the render target
 	function setupRenderTarget( renderTarget ) {
 
@@ -678,7 +800,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		var isCube = ( renderTarget.isWebGLRenderTargetCube === true );
 		var isMultisample = ( renderTarget.isWebGLMultisampleRenderTarget === true );
 		var isMultiview = ( renderTarget.isWebGLMultiviewRenderTarget === true );
-		var supportsMips = isPowerOfTwo( renderTarget ) || isWebGL2;
+		var supportsMips = isPowerOfTwo( renderTarget ) || _isWebGL2;
 
 		// Setup framebuffer
 
@@ -698,7 +820,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			if ( isMultisample ) {
 
-				if ( isWebGL2 ) {
+				if ( _isWebGL2 ) {
 
 					renderTargetProperties.__webglMultisampledFramebuffer = _gl.createFramebuffer();
 					renderTargetProperties.__webglColorRenderbuffer = _gl.createRenderbuffer();
@@ -727,7 +849,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 				} else {
 
-					console.warn( 'THREE.WebGLRenderer: WebGLMultisampleRenderTarget can only be used with WebGL2.' );
+					console.warn( 'TextureUtilities: WebGLMultisampleRenderTarget can only be used with WebGL2.' );
 
 				}
 
@@ -781,7 +903,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 		if ( isCube ) {
 
-			state.bindTexture( _gl.TEXTURE_CUBE_MAP, textureProperties.__webglTexture );
+			bindTexture( _gl.TEXTURE_CUBE_MAP, textureProperties.__webglTexture );
 			setTextureParameters( _gl.TEXTURE_CUBE_MAP, renderTarget.texture, supportsMips );
 
 			for ( var i = 0; i < 6; i ++ ) {
@@ -796,11 +918,11 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			}
 
-			state.bindTexture( _gl.TEXTURE_CUBE_MAP, null );
+			bindTexture( _gl.TEXTURE_CUBE_MAP, null );
 
 		} else if ( ! isMultiview ) {
 
-			state.bindTexture( _gl.TEXTURE_2D, textureProperties.__webglTexture );
+			bindTexture( _gl.TEXTURE_2D, textureProperties.__webglTexture );
 			setTextureParameters( _gl.TEXTURE_2D, renderTarget.texture, supportsMips );
 			setupFrameBufferTexture( renderTargetProperties.__webglFramebuffer, renderTarget, _gl.COLOR_ATTACHMENT0, _gl.TEXTURE_2D );
 
@@ -810,7 +932,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			}
 
-			state.bindTexture( _gl.TEXTURE_2D, null );
+			bindTexture( _gl.TEXTURE_2D, null );
 
 		}
 
@@ -834,11 +956,11 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			if ( image === undefined ) {
 
-				console.warn( 'THREE.WebGLRenderer: Texture marked for update but image is undefined' );
+				console.warn( 'TextureUtilities: Texture marked for update but image is undefined' );
 
 			} else if ( image.complete === false ) {
 
-				console.warn( 'THREE.WebGLRenderer: Texture marked for update but image is incomplete' );
+				console.warn( 'TextureUtilities: Texture marked for update but image is incomplete' );
 
 			} else {
 
@@ -849,8 +971,8 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 		}
 
-		state.activeTexture( _gl.TEXTURE0 + slot );
-		state.bindTexture( _gl.TEXTURE_2D, textureProperties.__webglTexture );
+		activeTexture( _gl.TEXTURE0 + slot );
+		bindTexture( _gl.TEXTURE_2D, textureProperties.__webglTexture );
 
 	}
 
@@ -860,7 +982,7 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 
 			if ( warnedTexture2D === false ) {
 
-				console.warn( "THREE.WebGLTextures.safeSetTexture2D: don't use render targets as textures. Use their .texture property instead." );
+				console.warn( "TextureUtilities: don't use render targets as textures. Use their .texture property instead." );
 				warnedTexture2D = true;
 
 			}
@@ -872,14 +994,14 @@ function TextureUtilities ( _gl, state, properties, capabilities, utils)
 		setTexture2D( texture, slot );
 
 	}
-    
+
     // API
 
 	this.allocateTextureUnit = allocateTextureUnit;
     this.resetTextureUnits = resetTextureUnits;
 
     this.setupRenderTarget = setupRenderTarget;
-    
+
     this.safeSetTexture2D = safeSetTexture2D;
 
 }
