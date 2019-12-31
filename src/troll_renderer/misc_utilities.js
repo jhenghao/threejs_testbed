@@ -4,13 +4,11 @@ import { TrollRenderer } from "./troll_renderer.js";
 
 function MiscUtilities() {
 
-    const textureDir = "../textures/";
-
     let _this = this;
 
-    let _container, _controls;
+    let _container;
     let _camera, _scene, _renderer;
-    let _prevTimestamp, _animateCallback;
+    let _prevTimestamp;
     let _stats;
 
     let _customRender;
@@ -32,25 +30,17 @@ function MiscUtilities() {
     }
 
     this.initThreeJsRenderer = function () {
-        //container = document.createElement( 'div' );
-        //document.body.appendChild( container );
 
-        /*
-        renderer = new THREE.WebGLRenderer( { antialias: true } );
-        renderer.setPixelRatio( window.devicePixelRatio );
-        renderer.setSize( window.innerWidth, window.innerHeight );
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.BasicShadowMap;
-        renderer.gammaOutput = true;
-        container.appendChild( renderer.domElement );
+        _renderer = new THREE.WebGLRenderer({ antialias: true });
+        _renderer.setPixelRatio(window.devicePixelRatio);
+        _renderer.setSize(window.innerWidth, window.innerHeight);
+        _renderer.shadowMap.enabled = true;
+        _renderer.shadowMap.type = THREE.BasicShadowMap;
+        _renderer.gammaOutput = true;
 
-        let renderPass = new THREE.RenderPass( scene, camera );
-    
-        composer = new THREE.EffectComposer( renderer );
-        composer.setSize( window.innerWidth, window.innerHeight );
-        composer.addPass( renderPass );
-        */
-
+        _container = document.createElement('div');
+        document.body.appendChild(_container);
+        _container.appendChild(_renderer.domElement);
     }
 
     this.initTrollRenderer = function () {
@@ -82,13 +72,8 @@ function MiscUtilities() {
         _container.appendChild(_stats.dom);
     }
 
-    function createOrditControl() {
-        _controls = new THREE.OrbitControls(_camera);
-        _controls.target.set(0, - 0.2, - 0.2);
-        _controls.update();
-    }
-
     function onWindowResize() {
+
         _camera.aspect = window.innerWidth / window.innerHeight;
         _camera.updateProjectionMatrix();
 
@@ -96,21 +81,21 @@ function MiscUtilities() {
     }
 
     this.animate = function (timestamp) {
+
         requestAnimationFrame(_this.animate);
 
-        let deltaTime = null;
-        if (_prevTimestamp && _animateCallback) {
-            deltaTime = timestamp - prevTimestamp;
-            _animateCallback(deltaTime);
+        if (_customRender != null) {
+            if (_prevTimestamp != null) {
+                _customRender(timestamp - _prevTimestamp);
+            }
+        }
+        else if (_renderer != null) {
+            _renderer.render();
         }
 
-        if (_customRender === null)
-            _composer.render(deltaTime);
-        else
-            _customRender();
-
-        if (_stats !== null)
+        if (_stats !== null) {
             _stats.update();
+        }
 
         _prevTimestamp = timestamp;
     }

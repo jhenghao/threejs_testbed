@@ -23,7 +23,7 @@ LightUtilities.updateMaterialUniforms = function (material, lights, shadowLights
 		materialUniforms.directionalLights.value = lightUniforms.directional;
 		materialUniforms.spotLights.value = lightUniforms.spot;
         materialUniforms.pointLights.value = lightUniforms.point;
-        
+
         materialUniforms.directionalShadowMap.value = lightUniforms.directionalShadowMap;
         materialUniforms.directionalShadowMatrix.value = lightUniforms.directionalShadowMatrix;
         materialUniforms.spotShadowMap.value = lightUniforms.spotShadowMap;
