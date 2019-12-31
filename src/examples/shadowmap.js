@@ -1,7 +1,7 @@
 "use strict";
 
-import { BasicUtilities } from './troll_renderer/basic_utilities.js'
-import { MiscUtilities } from './troll_renderer/misc_utilities.js'
+import { MiscUtilities } from '../troll_renderer/misc_utilities.js'
+import { MaterialUtilities } from '../troll_renderer/material_utilities.js';
 
 let _miscUtilities;
 
@@ -24,17 +24,6 @@ var phongMaterial = null;
 
 
 
-function replaceLightNums( string, parameters ) {
-
-	return string
-		.replace( /NUM_DIR_LIGHTS/g, parameters.numDirLights )
-		.replace( /NUM_SPOT_LIGHTS/g, parameters.numSpotLights )
-        .replace( /NUM_POINT_LIGHTS/g, parameters.numPointLights )
-        .replace( /NUM_DIR_LIGHT_SHADOWS/g, parameters.numDirLightShadows )
-		.replace( /NUM_SPOT_LIGHT_SHADOWS/g, parameters.numSpotLightShadows )
-		.replace( /NUM_POINT_LIGHT_SHADOWS/g, parameters.numPointLightShadows );
-
-}
 
 var clock;
 var dirLight, spotLight;
@@ -43,50 +32,11 @@ var torusKnot, cube, ground;
 
 function loadScene() {
 
-    let phongVertCode = BasicUtilities.loadText('shaders/mesh_phong.vert');
-    let phongFragCode = BasicUtilities.loadText('shaders/mesh_phong.frag');
-
-    let lightParameters = {
-        numDirLights: 1,
-		numSpotLights: 0,
-        numPointLights: 0,
-        numDirLightShadows: 1,
-		numSpotLightShadows: 0,
-	    numPointLightShadows: 0
-    };
-
-    phongVertCode = replaceLightNums(phongVertCode, lightParameters);
-    phongFragCode = replaceLightNums(phongFragCode, lightParameters);
-
-    // Create phong material
-    {
-        phongMaterial = new THREE.RawShaderMaterial({
-            uniforms: THREE.UniformsUtils.merge([
-                THREE.UniformsLib.common,
-                THREE.UniformsLib.lights,
-                {
-                    specular: { value: new THREE.Color(0x111111) },
-                    shininess: { value: 30 }
-                },
-            ]),
-            vertexShader: phongVertCode,
-            fragmentShader: phongFragCode,
-        });
-    
-        phongMaterial.lights = true;
-        phongMaterial.isMeshPhongMaterial = true;
-        phongMaterial.color = new THREE.Color(0xaaaaaa);
-        phongMaterial.specular = new THREE.Color(0x222222);
-        phongMaterial.shininess = 150;
-    }
-
-    /*
-    phongMaterial = new THREE.MeshPhongMaterial( {
-        color: 0xff0000,
+    phongMaterial = MaterialUtilities.createPhongMaterial({
+        color: 0xaaaaaa,
         shininess: 150,
         specular: 0x222222
-    } );
-    */
+    });
 
     _camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
     _camera.position.set(0, 15, 35);
@@ -151,7 +101,7 @@ function loadScene() {
     ground.receiveShadow = true;
     scene.add( ground );
     */
-    
+
 }
 
 function customRender() {
@@ -164,10 +114,7 @@ function customRender() {
     //cube.rotation.y += 2 * delta;
     //cube.rotation.z += 1 * delta;
 
-    //renderer.render( scene, camera );
-
     _renderer.render(_scene, _camera);
-
 }
 
 $(document).ready(function () {

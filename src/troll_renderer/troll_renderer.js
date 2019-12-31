@@ -1,17 +1,16 @@
 "use strict";
 
-import { BasicUtilities } from './basic_utilities.js'
-import { GlProgramUtilities } from './gl_program_utilities.js'
-import { LightUtilities } from './light_utilities.js'
-import { MaterialUtilities } from './material_utilities.js'
-import { TextureUtilities } from './texture_utilities.js'
+import { BasicUtilities } from './basic_utilities.js';
+import { GlProgramUtilities } from './gl_program_utilities.js';
+import { LightUtilities } from './light_utilities.js';
+import { MaterialUtilities } from './material_utilities.js';
+import { TextureUtilities } from './texture_utilities.js';
 
-import { WebGLCapabilities } from '../../three.js/src/renderers/webgl/WebGLCapabilities.js'
-import { WebGLExtensions } from '../../three.js/src/renderers/webgl/WebGLExtensions.js'
-import { WebGLProperties } from '../../three.js/src/renderers/webgl/WebGLProperties.js'
-import { WebGLState } from '../../three.js/src/renderers/webgl/WebGLState.js'
-
+import { WebGLCapabilities } from '../../three.js/src/renderers/webgl/WebGLCapabilities.js';
+import { WebGLExtensions } from '../../three.js/src/renderers/webgl/WebGLExtensions.js';
+import { WebGLProperties } from '../../three.js/src/renderers/webgl/WebGLProperties.js';
 import { WebGLRenderLists } from '../../three.js/src/renderers/webgl/WebGLRenderLists.js';
+import { WebGLState } from '../../three.js/src/renderers/webgl/WebGLState.js';
 
 function TrollRenderer(parameters) {
 
@@ -98,8 +97,8 @@ function TrollRenderer(parameters) {
 
     // Create depth material
     {
-        let depthVertCode = BasicUtilities.loadText('shaders/depth.vert');
-        let depthFragCode = BasicUtilities.loadText('shaders/depth.frag');
+        let depthVertCode = BasicUtilities.loadText('/src/shaders/depth.vert');
+        let depthFragCode = BasicUtilities.loadText('/src/shaders/depth.frag');
 
         _depthMaterial = new THREE.RawShaderMaterial({
             vertexShader: depthVertCode,
@@ -166,7 +165,7 @@ function TrollRenderer(parameters) {
         _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
         _frustum.setFromMatrix(_projScreenMatrix);
 
-        _currentRenderList = _renderLists.get( scene, camera );
+        _currentRenderList = _renderLists.get(scene, camera);
         _currentRenderList.init();
         _lights.length = 0;
         _shadowLights.length = 0;
@@ -189,25 +188,25 @@ function TrollRenderer(parameters) {
 
     // Private function
 
-    function getActiveCubeFace () {
+    function getActiveCubeFace() {
 
         return _currentActiveCubeFace;
 
     };
 
-    function getActiveMipmapLevel () {
+    function getActiveMipmapLevel() {
 
         return _currentActiveMipmapLevel;
 
     };
 
-    function getRenderTarget () {
+    function getRenderTarget() {
 
         return _currentRenderTarget;
 
     };
 
-    function setViewport (x, y, width, height) {
+    function setViewport(x, y, width, height) {
 
         if (x.isVector4) {
 
@@ -223,7 +222,7 @@ function TrollRenderer(parameters) {
 
     };
 
-    function setRenderTarget (renderTarget, activeCubeFace, activeMipmapLevel) {
+    function setRenderTarget(renderTarget, activeCubeFace, activeMipmapLevel) {
 
         _currentRenderTarget = renderTarget;
         _currentActiveCubeFace = activeCubeFace;
@@ -289,7 +288,7 @@ function TrollRenderer(parameters) {
 
     };
 
-    function clear (color, depth, stencil) {
+    function clear(color, depth, stencil) {
 
         var bits = 0;
 
@@ -301,63 +300,123 @@ function TrollRenderer(parameters) {
 
     };
 
-    function projectObject( object, camera ) {
+    function getLightParameters() {
 
-		if ( object.visible === false ) return;
+        let dirLightCount = 0;
+        let spotLightCount = 0;
+        let pointLightCount = 0;
+        let shadowDirLightCount = 0;
+        let shadowSpotLightCount = 0;
+        let shadowPointLightCount = 0;
 
-		var visible = object.layers.test( camera.layers );
+        for (const light of _lights) {
+            if (light.isDirectionalLight) {
+                dirLightCount += 1;
 
-		if ( visible ) {
+                if (light.castShadow) {
+                    shadowDirLightCount += 1;
+                }
+            }
+            else if (light.isSpotLight) {
+                spotLightCount += 1;
 
-			if ( object.isLight ) {
+                if (light.castShadow) {
+                    shadowSpotLightCount += 1;
+                }
+            }
+            else if (light.isPointLight) {
+                pointLightCount += 1;
 
-				_lights.push( object );
+                if (light.castShadow) {
+                    shadowPointLightCount += 1;
+                }
+            }
+        }
 
-				if ( object.castShadow ) {
+        return {
+            numDirLights: dirLightCount,
+            numSpotLights: spotLightCount,
+            numPointLights: pointLightCount,
+            numDirLightShadows: shadowDirLightCount,
+            numSpotLightShadows: shadowSpotLightCount,
+            numPointLightShadows: shadowPointLightCount
+        };
+    }
 
-					_shadowLights.push( object );
+    function replaceLightNums(string, parameters) {
 
-				}
+        return string
+            .replace(/NUM_DIR_LIGHTS/g, parameters.numDirLights)
+            .replace(/NUM_SPOT_LIGHTS/g, parameters.numSpotLights)
+            .replace(/NUM_POINT_LIGHTS/g, parameters.numPointLights)
+            .replace(/NUM_DIR_LIGHT_SHADOWS/g, parameters.numDirLightShadows)
+            .replace(/NUM_SPOT_LIGHT_SHADOWS/g, parameters.numSpotLightShadows)
+            .replace(/NUM_POINT_LIGHT_SHADOWS/g, parameters.numPointLightShadows);
 
-			} else if ( object.isMesh || object.isLine || object.isPoints ) {
+    }
 
-				if ( ! object.frustumCulled || _frustum.intersectsObject( object ) ) {
+    function projectObject(object, camera) {
 
-					_vector3.setFromMatrixPosition( object.matrixWorld )
-						.applyMatrix4( _projScreenMatrix );
+        if (object.visible === false) return;
 
-					let geometry = object.geometry;
+        var visible = object.layers.test(camera.layers);
+
+        if (visible) {
+
+            if (object.isLight) {
+
+                _lights.push(object);
+
+                if (object.castShadow) {
+
+                    _shadowLights.push(object);
+
+                }
+
+            } else if (object.isMesh || object.isLine || object.isPoints) {
+
+                if (!object.frustumCulled || _frustum.intersectsObject(object)) {
+
+                    _vector3.setFromMatrixPosition(object.matrixWorld)
+                        .applyMatrix4(_projScreenMatrix);
+
+                    let geometry = object.geometry;
                     let material = object.material;
                     let groupOrder = 0;
 
-					if ( material.visible ) {
+                    if (material.visible) {
 
-						_currentRenderList.push( object, geometry, material, groupOrder, _vector3.z, null );
+                        _currentRenderList.push(object, geometry, material, groupOrder, _vector3.z, null);
 
-					}
+                    }
 
-				}
+                }
 
-			}
+            }
 
-		}
+        }
 
-		var children = object.children;
+        var children = object.children;
 
-		for ( var i = 0, l = children.length; i < l; i ++ ) {
+        for (var i = 0, l = children.length; i < l; i++) {
 
-			projectObject( children[ i ], camera );
+            projectObject(children[i], camera);
 
-		}
+        }
 
-	}
+    }
 
-    function renderBufferDirect (object, geometry, material, camera) {
+    function renderBufferDirect(object, geometry, material, camera) {
 
         let programInfo = _materialToProgramInfo.get(material);
         if (programInfo == null) {
 
-            programInfo = GlProgramUtilities.createProgram(_gl, material.vertexShader, material.fragmentShader);
+            let lightParameters = getLightParameters();
+
+            let vertexShaderCode = replaceLightNums(material.vertexShader, lightParameters);
+            let fragmentShaderCode = replaceLightNums(material.fragmentShader, lightParameters);
+
+            programInfo = GlProgramUtilities.createProgram(_gl, vertexShaderCode, fragmentShaderCode);
             _materialToProgramInfo.set(material, programInfo);
 
         }
@@ -431,7 +490,7 @@ function TrollRenderer(parameters) {
         }
     };
 
-    function renderObject (object, camera, drawShadowMap, overwriteMaterial) {
+    function renderObject(object, camera, drawShadowMap, overwriteMaterial) {
 
         if (object.visible === false) return;
 
@@ -470,8 +529,7 @@ function TrollRenderer(parameters) {
                     }
                 }
 
-                if (!drawShadowMap)
-                {
+                if (!drawShadowMap) {
                     MaterialUtilities.refreshUniformsPhong(object.material.uniforms, object.material);
                     LightUtilities.updateMaterialUniforms(object.material, _lights, _shadowLights, camera);
                 }
@@ -491,7 +549,7 @@ function TrollRenderer(parameters) {
 
     }
 
-    function renderShadowMap (lights, scene, camera) {
+    function renderShadowMap(lights, scene, camera) {
 
         if (lights.length === 0) return;
 

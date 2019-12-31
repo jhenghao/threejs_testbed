@@ -1,6 +1,6 @@
 "use strict";
 
-import { WebGLUniforms } from '../../three.js/src/renderers/webgl/WebGLUniforms.js'
+import { WebGLUniforms } from '../../three.js/src/renderers/webgl/WebGLUniforms.js';
 
 function GlProgramUtilities ()
 {
