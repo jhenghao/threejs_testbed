@@ -3,7 +3,6 @@
 import { BasicUtilities } from './basic_utilities.js';
 import { GlProgramUtilities } from './gl_program_utilities.js';
 import { LightUtilities } from './light_utilities.js';
-import { MaterialUtilities } from './material_utilities.js';
 import { TextureUtilities } from './texture_utilities.js';
 
 import { WebGLCapabilities } from '../../three.js/src/renderers/webgl/WebGLCapabilities.js';
@@ -95,6 +94,10 @@ function TrollRenderer(parameters) {
     let _lights = [];
     let _shadowLights = [];
 
+    // Full screen quad
+    let _fullScreenQuadCamera;
+    let _fullScreenQuadMesh;
+
     // Create depth material
     {
         let depthVertCode = BasicUtilities.loadText('/src/shaders/depth.vert');
@@ -119,13 +122,30 @@ function TrollRenderer(parameters) {
 
     // API
 
-    this.getContext = function () {
+    this.getContext = getContext;
+
+    this.setSize = setSize;
+    this.setPixelRatio = setPixelRatio;
+    this.setRenderTarget = setRenderTarget;
+    this.getClearColor = getClearColor;
+    this.setClearColor = setClearColor;
+    this.clear = clear;
+    this.clearColor = clearColor;
+    this.clearDepth = clearDepth;
+    this.clearStencil = clearStencil;
+
+    this.render = render;
+    this.renderFullScreenQuad = renderFullScreenQuad;
+
+    // Functions
+
+    function getContext() {
 
         return _gl;
 
     };
 
-    this.setSize = function (width, height, updateStyle) {
+    function setSize(width, height, updateStyle) {
 
         _width = width;
         _height = height;
@@ -144,49 +164,15 @@ function TrollRenderer(parameters) {
 
     };
 
-    this.setPixelRatio = function (value) {
+    function setPixelRatio(value) {
 
         if (value === undefined) return;
 
         _pixelRatio = value;
 
-        this.setSize(_width, _height, false);
+        setSize(_width, _height, false);
 
     };
-
-    this.render = function (scene, camera) {
-
-        // update scene graph
-        if (scene.autoUpdate === true) scene.updateMatrixWorld();
-
-        // update camera matrices and frustum
-        if (camera.parent === null) camera.updateMatrixWorld();
-
-        _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        _frustum.setFromMatrix(_projScreenMatrix);
-
-        _currentRenderList = _renderLists.get(scene, camera);
-        _currentRenderList.init();
-        _lights.length = 0;
-        _shadowLights.length = 0;
-
-        // collect objects and lights
-        projectObject(scene, camera);
-
-        _currentRenderList.sort();
-
-        renderShadowMap(_shadowLights, scene, camera);
-
-        _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        _frustum.setFromMatrix(_projScreenMatrix);
-
-        let drawShadowMap = false;
-        renderObject(scene, camera, drawShadowMap);
-
-        _currentRenderList = null;
-    }
-
-    // Private function
 
     function getActiveCubeFace() {
 
@@ -288,6 +274,34 @@ function TrollRenderer(parameters) {
 
     };
 
+    function getClearColor() {
+
+        let clearColor = _gl.getParameter(_gl.COLOR_CLEAR_VALUE);
+
+        return {
+            rgb: new THREE.Color(clearColor[0], clearColor[1], clearColor[2]),
+            alpha: clearColor[3],
+        }
+
+    }
+
+    function setClearColor(color, alpha) {
+
+        if (alpha == null)
+        {
+            alpha = 1;
+        }
+
+        if (alpha < 0 || alpha > 1)
+        {
+            console.log("Invalid alpha value.");
+            return;
+        }
+
+        _state.buffers.color.setClear(color.r, color.g, color.b, alpha);
+
+    };
+
     function clear(color, depth, stencil) {
 
         var bits = 0;
@@ -299,6 +313,58 @@ function TrollRenderer(parameters) {
         _gl.clear(bits);
 
     };
+
+    function clearColor() {
+
+        clear(true, false, false);
+
+    };
+
+    function clearDepth() {
+
+        clear(false, true, false);
+
+    };
+
+    function clearStencil() {
+
+        clear(false, false, true);
+
+    };
+
+    function generatePrecision(parameters) {
+
+        var precisionstring = [
+
+            'precision highp float;',
+            'precision highp int;',
+            '',
+            '#define HIGH_PRECISION',
+            '',
+
+        ].join("\n");
+
+        return precisionstring;
+
+    }
+
+    function generateDefines(defines) {
+
+        var chunks = [];
+
+        for (var name in defines) {
+
+            var value = defines[name];
+
+            if (value === false) continue;
+
+            chunks.push('#define ' + name + ' ' + value);
+
+        }
+
+        chunks.push('');
+        return chunks.join('\n');
+    }
 
     function getLightParameters() {
 
@@ -411,10 +477,15 @@ function TrollRenderer(parameters) {
         let programInfo = _materialToProgramInfo.get(material);
         if (programInfo == null) {
 
+            let precision = generatePrecision();
+            let defines = generateDefines(material.defines);
+
             let lightParameters = getLightParameters();
 
-            let vertexShaderCode = replaceLightNums(material.vertexShader, lightParameters);
-            let fragmentShaderCode = replaceLightNums(material.fragmentShader, lightParameters);
+            let vertexShaderCode = precision + defines +
+                replaceLightNums(material.vertexShader, lightParameters);
+            let fragmentShaderCode = precision + defines +
+                replaceLightNums(material.fragmentShader, lightParameters);
 
             programInfo = GlProgramUtilities.createProgram(_gl, vertexShaderCode, fragmentShaderCode);
             _materialToProgramInfo.set(material, programInfo);
@@ -530,8 +601,14 @@ function TrollRenderer(parameters) {
                 }
 
                 if (!drawShadowMap) {
-                    MaterialUtilities.refreshUniformsPhong(object.material.uniforms, object.material);
-                    LightUtilities.updateMaterialUniforms(object.material, _lights, _shadowLights, camera);
+
+                    if (typeof material.refreshMaterialUniformsCallback !== 'undefined') {
+                        material.refreshMaterialUniformsCallback(object.material.uniforms, object.material);
+                    }
+
+                    if (material.needLights) {
+                        LightUtilities.updateMaterialUniforms(object.material, _lights, _shadowLights, camera);
+                    }
                 }
 
                 renderBufferDirect(object, geometry, material, camera);
@@ -552,6 +629,20 @@ function TrollRenderer(parameters) {
     function renderShadowMap(lights, scene, camera) {
 
         if (lights.length === 0) return;
+
+        let needShadow = false;
+        for (let object in _currentRenderList)
+        {
+            if (object.receiveShadow)
+            {
+                needShadow = true;
+                break;
+            }
+        }
+
+        if (!needShadow) return;
+
+        let clearColor = getClearColor();
 
         let currentRenderTarget = getRenderTarget();
         let activeCubeFace = getActiveCubeFace();
@@ -653,8 +744,54 @@ function TrollRenderer(parameters) {
         }
 
         setRenderTarget(currentRenderTarget, activeCubeFace, activeMipmapLevel);
+        setClearColor(clearColor.rgb, clearColor.alpha);
 
     };
+
+    function render(scene, camera) {
+
+        // update scene graph
+        if (scene.autoUpdate === true) scene.updateMatrixWorld();
+
+        // update camera matrices and frustum
+        if (camera.parent === null) camera.updateMatrixWorld();
+
+        _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        _frustum.setFromMatrix(_projScreenMatrix);
+
+        _currentRenderList = _renderLists.get(scene, camera);
+        _currentRenderList.init();
+        _lights.length = 0;
+        _shadowLights.length = 0;
+
+        // collect objects and lights
+        projectObject(scene, camera);
+
+        _currentRenderList.sort();
+
+        renderShadowMap(_shadowLights, scene, camera);
+
+        _projScreenMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        _frustum.setFromMatrix(_projScreenMatrix);
+
+        let drawShadowMap = false;
+        renderObject(scene, camera, drawShadowMap);
+
+        _currentRenderList = null;
+    }
+
+    function renderFullScreenQuad(material) {
+        if (_fullScreenQuadCamera == null) {
+            _fullScreenQuadCamera = new THREE.OrthographicCamera(- 1, 1, 1, - 1, 0, 1);
+        }
+
+        if (_fullScreenQuadMesh == null) {
+            _fullScreenQuadMesh = new THREE.Mesh(new THREE.PlaneBufferGeometry(2, 2));
+        }
+
+        _fullScreenQuadMesh.material = material;
+        render(_fullScreenQuadMesh, _fullScreenQuadCamera);
+    }
 }
 
 export { TrollRenderer };

@@ -2,7 +2,7 @@
 
 import { TrollRenderer } from "./troll_renderer.js";
 
-function MiscUtilities() {
+function InitUtilities() {
 
     let _this = this;
 
@@ -12,6 +12,14 @@ function MiscUtilities() {
     let _stats;
 
     let _customRender;
+
+    function onWindowResize() {
+
+        _camera.aspect = window.innerWidth / window.innerHeight;
+        _camera.updateProjectionMatrix();
+
+        _renderer.setSize(window.innerWidth, window.innerHeight);
+    }
 
     this.setCustomRender = function (customRender) {
         _customRender = customRender;
@@ -72,14 +80,6 @@ function MiscUtilities() {
         _container.appendChild(_stats.dom);
     }
 
-    function onWindowResize() {
-
-        _camera.aspect = window.innerWidth / window.innerHeight;
-        _camera.updateProjectionMatrix();
-
-        _renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
     this.animate = function (timestamp) {
 
         requestAnimationFrame(_this.animate);
@@ -102,4 +102,4 @@ function MiscUtilities() {
 
 }
 
-export { MiscUtilities };
+export { InitUtilities };

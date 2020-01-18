@@ -29,7 +29,7 @@ MaterialUtilities.createPhongMaterial = function (parameters) {
         fragmentShader: phongFragCode,
     });
 
-    phongMaterial.lights = true;
+    phongMaterial.needLights = true;
     phongMaterial.isMeshPhongMaterial = true;
     phongMaterial.color = defaultColor;
     phongMaterial.specular = defaultSpecular;
@@ -37,7 +37,31 @@ MaterialUtilities.createPhongMaterial = function (parameters) {
 
     phongMaterial.setValues(parameters);
 
+    phongMaterial.refreshMaterialUniformsCallback = MaterialUtilities.refreshPhongMaterialUniforms;
     return phongMaterial;
+}
+
+MaterialUtilities.createCopyMaterial = function (parameters) {
+
+    let copyVertCode = BasicUtilities.loadText('/src/shaders/copy.vert');
+    let copyFragCode = BasicUtilities.loadText('/src/shaders/copy.frag');
+
+	let copyMaterial = new THREE.RawShaderMaterial( {
+
+		uniforms: {
+            "tDiffuse": { value: null },
+            "opacity": { value: 1.0 }
+        },
+		vertexShader: copyVertCode,
+		fragmentShader: copyFragCode,
+		blending: THREE.AdditiveBlending,
+		depthTest: false,
+		depthWrite: false,
+		transparent: true
+    } );
+
+    copyMaterial.setValues(parameters);
+    return copyMaterial;
 }
 
 MaterialUtilities.refreshUniformsCommon = function (uniforms, material) {
@@ -174,7 +198,7 @@ MaterialUtilities.refreshUniformsCommon = function (uniforms, material) {
 
 }
 
-MaterialUtilities.refreshUniformsPhong = function (uniforms, material) {
+MaterialUtilities.refreshPhongMaterialUniforms = function (uniforms, material) {
 
     MaterialUtilities.refreshUniformsCommon(uniforms, material);
 

@@ -1,9 +1,9 @@
 "use strict";
 
-import { MiscUtilities } from '../troll_renderer/misc_utilities.js'
-import { MaterialUtilities } from '../troll_renderer/material_utilities.js';
+import { InitUtilities } from '../../troll_renderer/init_utilities.js'
+import { MaterialUtilities } from '../../troll_renderer/material_utilities.js';
 
-let _miscUtilities;
+let _initUtilities;
 
 let _renderer;
 let _scene;
@@ -119,21 +119,20 @@ $(document).ready(function () {
         document.body.appendChild(THREE.WEBGL.getWebGLErrorMessage());
     }
 
-    _miscUtilities = new MiscUtilities()
+    _initUtilities = new InitUtilities();
 
-    _miscUtilities.initTrollRenderer();
-    //_miscUtilities.initThreeJsRenderer();
-    _miscUtilities.initSceneAndCamera();
-    _miscUtilities.initMisc();
+    _initUtilities.initTrollRenderer();
+    //_initUtilities.initThreeJsRenderer();
+    _initUtilities.initSceneAndCamera();
+    _initUtilities.initMisc();
 
-    _renderer = _miscUtilities.getRenderer();
-    _scene = _miscUtilities.getScene();
-    _camera = _miscUtilities.getCamera();
+    _renderer = _initUtilities.getRenderer();
+    _scene = _initUtilities.getScene();
+    _camera = _initUtilities.getCamera();
 
     loadScene();
-
     createGui();
 
-    _miscUtilities.setCustomRender(customRender);
-    _miscUtilities.animate();
+    _initUtilities.setCustomRender(customRender);
+    _initUtilities.animate();
 });

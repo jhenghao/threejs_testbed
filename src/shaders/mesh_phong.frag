@@ -1,9 +1,5 @@
 #define PHONG
 
-precision highp float;
-precision highp int;
-
-
 #define USE_SHADOWMAP
 
 //#define PHYSICALLY_CORRECT_LIGHTS
@@ -120,11 +116,11 @@ vec3 getLightProbeIrradiance( const in vec3 lightProbe[ 9 ], const in GeometricC
 vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 	vec3 irradiance = ambientLightColor;
-	
+
 	#ifndef PHYSICALLY_CORRECT_LIGHTS
 
 		irradiance *= PI;
-		
+
 	#endif
 
 	return irradiance;
@@ -542,7 +538,7 @@ void main() {
 		normal = normal * ( float( gl_FrontFacing ) * 2.0 - 1.0 );
 
 	#endif
-	
+
 	#ifdef USE_TANGENT
 
 		vec3 tangent = normalize( vTangent );
@@ -674,13 +670,13 @@ void main() {
 	#ifdef USE_LIGHTMAP
 
 		vec3 lightMapIrradiance = texture2D( lightMap, vUv2 ).xyz * lightMapIntensity;
-		
+
 		#ifndef PHYSICALLY_CORRECT_LIGHTS
 
 			lightMapIrradiance *= PI;
 
 		#endif
-		
+
 		irradiance += lightMapIrradiance;
 	#endif
 
@@ -694,7 +690,7 @@ void main() {
 #if defined( USE_ENVMAP ) && defined( RE_IndirectSpecular )
 
 	radiance += getLightProbeIndirectRadiance( geometry, Material_BlinnShininessExponent( material ), maxMipLevel );
-	
+
 	#ifndef STANDARD
 
 		clearCoatRadiance += getLightProbeIndirectRadiance( geometry, Material_ClearCoat_BlinnShininessExponent( material ), maxMipLevel );

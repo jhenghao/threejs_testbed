@@ -2,10 +2,6 @@
 
 #define USE_SHADOWMAP
 
-precision highp float;
-precision highp int;
-
-
 uniform mat4 modelMatrix;
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;

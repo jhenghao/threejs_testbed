@@ -167,4 +167,26 @@ BasicUtilities.convert = function (gl, p) {
 
 }
 
+BasicUtilities.createRenderTarget = function (width, height, name, parameters) {
+
+    if (name == null)
+    {
+        console.log("Failed to create render target: name is null.");
+        return null;
+    }
+
+    let pars = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat };
+
+    if (parameters != null)
+    {
+        $.extend(true, pars, parameters);
+    }
+
+    let renderTargetBase = new THREE.WebGLRenderTarget(width, height, pars);
+    renderTargetBase.texture.name = name;
+    renderTargetBase.texture.generateMipmaps = false;
+
+    return renderTargetBase;
+}
+
 export { BasicUtilities };

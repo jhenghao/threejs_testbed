@@ -289,6 +289,20 @@ function TextureUtilities(_gl, extensions, properties, capabilities) {
 
 	}
 
+	// Fallback filters for non-power-of-2 textures
+
+	function filterFallback(f) {
+
+		if (f === NearestFilter || f === NearestMipmapNearestFilter || f === NearestMipmapLinearFilter) {
+
+			return _gl.NEAREST;
+
+		}
+
+		return _gl.LINEAR;
+
+	}
+
 	function activeTexture(webglSlot) {
 
 		if (webglSlot === undefined) webglSlot = _gl.TEXTURE0 + _maxTextures - 1;

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - glTF loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				font-family: Monospace;
+				background-color: #000;
+				color: #fff;
+				margin: 0px;
+				overflow: hidden;
+			}
+			#info {
+				color: #fff;
+				position: absolute;
+				top: 10px;
+				width: 100%;
+				text-align: center;
+				z-index: 100;
+				display:block;
+				font-size: large;
+			}
+			#info a {
+				color: #75ddc1;
+				font-weight: bold;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="info">
+			Bloom Post-Processing. Click sphere to enable/disable bloom effect individually.<br />
+		</div>
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script src="../../../three.js/build/three.js"></script>
+		<script src="../../../three.js/examples/js/libs/dat.gui.min.js"></script>
+		<script src="../../../three.js/examples/js/libs/stats.min.js"></script>
+		<script src="../../../three.js/examples/js/WebGL.js"></script>
+		<script src="blur_pass.js" type="module"></script>
+		<script src="bloom_pass.js" type="module"></script>
+		<script src="bloom_selective.js" type="module"></script>
+	</body>
+</html>
